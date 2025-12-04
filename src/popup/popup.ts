@@ -47,7 +47,7 @@ const elements = {
 };
 
 // State
-let isCapturing = false;
+let isCapturing = true;
 
 /**
  * Initialize the popup
@@ -55,6 +55,21 @@ let isCapturing = false;
 function init(): void {
   setupEventListeners();
   loadNetworkStats();
+  // Initialize UI to show capturing state by default
+  initializeCaptureUI();
+
+  // Start polling for stats since capturing is on by default
+  pollNetworkStats();
+}
+
+/**
+ * Initialize UI to show capturing state by default
+ */
+function initializeCaptureUI(): void {
+  elements.status.classList.add('capturing');
+  elements.statusText.textContent = 'Capturing';
+  elements.startCaptureBtn.disabled = true;
+  elements.stopCaptureBtn.disabled = false;
 }
 
 /**

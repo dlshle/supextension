@@ -12,7 +12,7 @@ import type {
 
 // Network log storage
 let networkLog: NetworkLogEntry[] = [];
-let isCapturingNetwork = false;
+let isCapturingNetwork = true;
 let requestIdCounter = 0;
 
 // Map to track pending requests for response body capture
@@ -23,7 +23,7 @@ const pendingRequests = new Map<string, NetworkLogEntry>();
  */
 function initialize(): void {
   console.log('[Supextension] Background service worker initialized');
-  
+
   // Set up message listener
   chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
     handleMessage(message, sender).then(sendResponse);
@@ -188,11 +188,11 @@ async function handleTakeScreenshot(
     // Get current window ID
     const currentWindow = await chrome.windows.getCurrent();
     const windowId = currentWindow.id;
-    
+
     if (!windowId) {
       return { success: false, error: 'No active window found' };
     }
-    
+
     const dataUrl = await chrome.tabs.captureVisibleTab(windowId, {
       format,
       quality: format === 'jpeg' ? quality : undefined,
@@ -224,15 +224,15 @@ async function handleGetAllText(tabId?: number): Promise<ApiResponse> {
             acceptNode: (node) => {
               const parent = node.parentElement;
               if (!parent) return NodeFilter.FILTER_REJECT;
-              
+
               const tagName = parent.tagName.toLowerCase();
               if (['script', 'style', 'noscript'].includes(tagName)) {
                 return NodeFilter.FILTER_REJECT;
               }
-              
+
               const text = node.textContent?.trim();
               if (!text) return NodeFilter.FILTER_REJECT;
-              
+
               return NodeFilter.FILTER_ACCEPT;
             },
           }
@@ -244,7 +244,7 @@ async function handleGetAllText(tabId?: number): Promise<ApiResponse> {
           const text = node.textContent?.trim();
           if (text) texts.push(text);
         }
-        
+
         return texts.join('\n');
       },
     });
@@ -332,7 +332,7 @@ async function handleGetStorage(
       func: (type: 'local' | 'session', keyList?: string[]) => {
         const storage = type === 'local' ? localStorage : sessionStorage;
         const result: Record<string, unknown> = {};
-        
+
         if (keyList && keyList.length > 0) {
           keyList.forEach((key) => {
             const value = storage.getItem(key);
@@ -359,7 +359,7 @@ async function handleGetStorage(
             }
           }
         }
-        
+
         return result;
       },
       args: [storageType || 'local', keys || []],
@@ -408,7 +408,7 @@ async function handleSetStorage(
 async function handleGetCookies(url?: string, name?: string): Promise<ApiResponse> {
   try {
     let cookieUrl = url;
-    
+
     if (!cookieUrl) {
       const tab = await getActiveTab();
       cookieUrl = tab?.url;
@@ -567,12 +567,12 @@ function setupNetworkListeners(): void {
         timestamp: number;
         response: { opcode: number; payloadData: string };
       };
-      
+
       // Find or create WS entry
       let wsEntry = networkLog.find(
         (e) => e.type === 'websocket' && e.id === `ws_${wsParams.requestId}`
       );
-      
+
       if (!wsEntry) {
         wsEntry = {
           id: `ws_${wsParams.requestId}`,
