@@ -9,6 +9,7 @@ import type {
   NetworkLogEntry,
   WebSocketMessage,
 } from '../api/types.js';
+import { connectNativeMessaging } from './nativeMessaging.js';
 
 // Network log storage
 let networkLog: NetworkLogEntry[] = [];
@@ -32,6 +33,9 @@ function initialize(): void {
 
   // Set up network request listeners
   setupNetworkListeners();
+
+  // Connect to native messaging host for puppet service
+  connectNativeMessaging((message) => handleMessage(message, undefined as unknown as chrome.runtime.MessageSender));
 }
 
 /**

@@ -1,0 +1,9 @@
+{
+  "name": "com.supextension.puppet",
+  "description": "Puppet native messaging host for Supextension",
+  "path": "/usr/local/bin/supextension-puppet",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://EXTENSION_ID_PLACEHOLDER/"
+  ]
+}

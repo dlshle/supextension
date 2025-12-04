@@ -152,17 +152,47 @@ supextension/
 │   │   └── popup.ts               # Popup logic
 │   ├── icons/                     # Extension icons
 │   └── manifest.json              # Extension manifest
+├── puppet/                        # Remote control server & clients
+│   ├── config.json                # Server configuration
+│   ├── server.js                  # Native messaging host + WS/HTTP server
+│   ├── client.js / client.py      # Reference clients
+│   └── examples/                  # Example scripts
 ├── dist/                          # Build output
 ├── package.json
 ├── tsconfig.json
 └── README.md
 ```
 
+## Remote Browser Control (Puppet Service)
+
+The extension now includes a **Puppet Service** that enables remote browser control via WebSocket or HTTP. This allows external applications to programmatically control Chrome.
+
+**Quick Start:**
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Build extension and load it in Chrome
+npm run build
+
+# 3. Install native messaging host (get extension ID from chrome://extensions/)
+npm run puppet:install -- --extension-id=YOUR_EXTENSION_ID
+
+# 4. Start puppet server
+npm run puppet:start
+
+# 5. Use client library to control browser
+node puppet/examples/basic-usage.js
+```
+
+See [puppet.md](./puppet.md) and [puppet/README.md](./puppet/README.md) for complete documentation.
+
 ## Future Enhancements
 
 - [ ] WebSocket message content capture
 - [ ] Request/response body capture
-- [ ] Task queue for server-dispatched automation
+- [x] Remote control server (Puppet Service)
 - [ ] Record and playback functionality
 - [ ] Element selector builder
 - [ ] Network request modification/blocking
