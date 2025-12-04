@@ -1,0 +1,23 @@
+{
+  "name": "supextension",
+  "version": "1.0.0",
+  "description": "Chrome extension for browser automation with API control",
+  "scripts": {
+    "build": "npm run clean && tsc && npm run copy-assets",
+    "watch": "tsc --watch",
+    "copy-assets": "node scripts/copy-assets.js",
+    "clean": "rm -rf dist",
+    "dev": "npm run build && npm run watch",
+    "icons": "node scripts/generate-icons.js"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.254",
+    "typescript": "^5.3.3"
+  },
+  "keywords": [
+    "chrome-extension",
+    "browser-automation",
+    "dom-manipulation"
+  ],
+  "license": "MIT"
+}

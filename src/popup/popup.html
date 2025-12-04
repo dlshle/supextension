@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supextension</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <rect width="24" height="24" rx="6" fill="url(#gradient)"/>
+          <path d="M7 12L10 15L17 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs>
+            <linearGradient id="gradient" x1="0" y1="0" x2="24" y2="24">
+              <stop stop-color="#6366f1"/>
+              <stop offset="1" stop-color="#8b5cf6"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>Supextension</span>
+      </div>
+      <div class="status" id="status">
+        <span class="status-dot"></span>
+        <span class="status-text">Ready</span>
+      </div>
+    </header>
+
+    <!-- Navigation Section -->
+    <section class="section">
+      <h2 class="section-title">Navigation</h2>
+      <div class="input-group">
+        <input type="url" id="urlInput" placeholder="Enter URL..." class="input">
+        <button id="navigateBtn" class="btn btn-primary">Go</button>
+      </div>
+      <button id="backBtn" class="btn btn-secondary btn-full">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M10.5 3L5.5 8L10.5 13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Navigate Back
+      </button>
+    </section>
+
+    <!-- DOM & Content Section -->
+    <section class="section">
+      <h2 class="section-title">Content</h2>
+      <div class="btn-grid">
+        <button id="getDomBtn" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M2 3h12M2 8h12M2 13h8" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </svg>
+          Get DOM
+        </button>
+        <button id="getTextBtn" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M3 4h10M3 8h7M3 12h10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </svg>
+          Get Text
+        </button>
+        <button id="screenshotBtn" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <rect x="2" y="3" width="12" height="10" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.5" fill="none"/>
+          </svg>
+          Screenshot
+        </button>
+        <button id="injectBtn" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M5 4L2 8L5 12M11 4L14 8L11 12M9 3L7 13" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Inject JS
+        </button>
+      </div>
+    </section>
+
+    <!-- Storage Section -->
+    <section class="section">
+      <h2 class="section-title">Storage & Cookies</h2>
+      <div class="btn-grid">
+        <button id="getLocalStorageBtn" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <rect x="3" y="2" width="10" height="12" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <path d="M5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </svg>
+          Local Storage
+        </button>
+        <button id="getSessionStorageBtn" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <rect x="3" y="2" width="10" height="12" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <path d="M6 6h4M6 9h4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </svg>
+          Session Storage
+        </button>
+        <button id="getCookiesBtn" class="btn btn-secondary btn-full">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <circle cx="6" cy="6" r="1" fill="currentColor"/>
+            <circle cx="10" cy="7" r="1" fill="currentColor"/>
+            <circle cx="7" cy="10" r="1" fill="currentColor"/>
+          </svg>
+          Get Cookies
+        </button>
+      </div>
+    </section>
+
+    <!-- Network Section -->
+    <section class="section">
+      <h2 class="section-title">Network Capture</h2>
+      <div class="network-controls">
+        <button id="startCaptureBtn" class="btn btn-accent">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <circle cx="8" cy="8" r="2" fill="currentColor"/>
+          </svg>
+          Start Capture
+        </button>
+        <button id="stopCaptureBtn" class="btn btn-secondary" disabled>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <rect x="4" y="4" width="8" height="8" rx="1" fill="currentColor"/>
+          </svg>
+          Stop
+        </button>
+      </div>
+      <div class="btn-grid-sm">
+        <button id="viewNetworkBtn" class="btn btn-secondary btn-sm">View Log</button>
+        <button id="clearNetworkBtn" class="btn btn-secondary btn-sm">Clear Log</button>
+      </div>
+      <div class="network-stats" id="networkStats">
+        <span>Requests: <strong id="requestCount">0</strong></span>
+      </div>
+    </section>
+
+    <!-- Output Panel -->
+    <section class="section output-section">
+      <div class="output-header">
+        <h2 class="section-title">Output</h2>
+        <button id="copyOutputBtn" class="btn btn-icon" title="Copy to clipboard">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+            <rect x="4" y="4" width="8" height="8" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <path d="M2 10V3a1 1 0 011-1h7" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <pre id="output" class="output">Ready to capture data...</pre>
+    </section>
+  </div>
+
+  <!-- Inject Script Modal -->
+  <div id="injectModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Inject JavaScript</h3>
+        <button id="closeModalBtn" class="btn btn-icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <textarea id="scriptInput" class="textarea" placeholder="Enter JavaScript code..."></textarea>
+      <div class="modal-footer">
+        <button id="executeScriptBtn" class="btn btn-primary">Execute</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
+
