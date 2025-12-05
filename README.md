@@ -156,7 +156,12 @@ supextension/
 │   ├── config.json                # Server configuration
 │   ├── server.js                  # WebSocket/HTTP coordinator server
 │   ├── client.js                  # Browser client library
-│   └── examples/                  # Example scripts
+│   ├── examples/                  # Example scripts
+│   └── web-client/                # No-code web console
+│       ├── index.html             # Main UI
+│       ├── styles.css             # Styling
+│       ├── app.js                 # Application logic
+│       └── README.md              # Console documentation
 ├── dist/                          # Build output
 ├── package.json
 ├── tsconfig.json
@@ -187,6 +192,14 @@ chrome.storage.local.set({ puppetServerUrl: 'ws://YOUR_SERVER:9222' });
 # 5. Run the JavaScript client example to issue commands
 node puppet/examples/basic-usage.js
 ```
+
+Prefer a no-code workflow? Launch the [web console](./puppet/web-client/README.md) after starting the puppet server:
+
+```bash
+python3 -m http.server 8080
+```
+
+Then visit `http://localhost:8080/puppet/web-client/`, connect to your WebSocket endpoint, and drive the browser from the UI.
 
 See [puppet.md](./puppet.md) and [puppet/README.md](./puppet/README.md) for complete documentation, including deployment, authentication, and API details.
 

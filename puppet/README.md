@@ -7,6 +7,7 @@ Remote coordinator that links the Supextension agent (Chrome extension) with rem
 - **Agent** – the Chrome extension service worker that connects to the server
 - **Server** – Node.js WebSocket/HTTP process (`puppet/server.js`)
 - **Client** – JavaScript library (`puppet/client.js`) for remote control
+- **Web Console** – Browser-based UI (`./web-client/`) for graphical remote control
 
 ## Quick Start
 
@@ -31,6 +32,17 @@ Remote coordinator that links the Supextension agent (Chrome extension) with rem
    ```bash
    npm run puppet:example
    ```
+
+### Web Console (No-Code Remote Control)
+
+A full-featured front-end lives in `./web-client/` for teams that prefer a graphical interface.
+
+1. Make sure the puppet server (`npm run puppet:start`) and Chrome agent are connected
+2. Serve the static files from the repo root (for example: `python3 -m http.server 8080`)
+3. Visit `http://localhost:8080/puppet/web-client/`, enter your WebSocket URL/API key, and click **Connect**
+4. Use the cards to navigate, read DOM/text, run scripts, manage storage & cookies, and capture network traffic
+
+See `./web-client/README.md` for a full tour of the console and troubleshooting tips.
 
 ## Configuration
 
