@@ -152,10 +152,10 @@ supextension/
 │   │   └── popup.ts               # Popup logic
 │   ├── icons/                     # Extension icons
 │   └── manifest.json              # Extension manifest
-├── puppet/                        # Remote control server & clients
+├── puppet/                        # Remote control server & client
 │   ├── config.json                # Server configuration
-│   ├── server.js                  # Native messaging host + WS/HTTP server
-│   ├── client.js / client.py      # Reference clients
+│   ├── server.js                  # WebSocket/HTTP coordinator server
+│   ├── client.js                  # Browser client library
 │   └── examples/                  # Example scripts
 ├── dist/                          # Build output
 ├── package.json
@@ -165,7 +165,7 @@ supextension/
 
 ## Remote Browser Control (Puppet Service)
 
-The extension now includes a **Puppet Service** that enables remote browser control via WebSocket or HTTP. This allows external applications to programmatically control Chrome.
+The extension now includes a **Puppet Service** that enables remote browser control over WebSocket. A lightweight Node.js server coordinates commands between the extension (as an "agent") and any number of remote clients.
 
 **Quick Start:**
 
@@ -173,20 +173,22 @@ The extension now includes a **Puppet Service** that enables remote browser cont
 # 1. Install dependencies
 npm install
 
-# 2. Build extension and load it in Chrome
+# 2. Build the extension and load dist/ in Chrome
 npm run build
 
-# 3. Install native messaging host (get extension ID from chrome://extensions/)
-npm run puppet:install -- --extension-id=YOUR_EXTENSION_ID
-
-# 4. Start puppet server
+# 3. Start the remote coordinator server (defaults to ws://localhost:9222)
 npm run puppet:start
 
-# 5. Use client library to control browser
+# 4. (Optional) Set a custom server URL for the extension
+#    The popup can expose a simple input backed by chrome.storage.local
+#    or run the following in the DevTools console for the extension service worker:
+chrome.storage.local.set({ puppetServerUrl: 'ws://YOUR_SERVER:9222' });
+
+# 5. Run the JavaScript client example to issue commands
 node puppet/examples/basic-usage.js
 ```
 
-See [puppet.md](./puppet.md) and [puppet/README.md](./puppet/README.md) for complete documentation.
+See [puppet.md](./puppet.md) and [puppet/README.md](./puppet/README.md) for complete documentation, including deployment, authentication, and API details.
 
 ## Future Enhancements
 

@@ -11,8 +11,7 @@
     "cookies",
     "storage",
     "webRequest",
-    "debugger",
-    "nativeMessaging"
+    "debugger"
   ],
   
   "host_permissions": [

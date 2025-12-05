@@ -39,18 +39,46 @@ class PuppetClient {
         const WebSocketImpl = typeof WebSocket !== 'undefined' ? WebSocket : require('ws');
         this.ws = new WebSocketImpl(this.config.url);
 
+        const identifyTimeout = setTimeout(() => {
+          reject(new Error('Identification timeout'));
+          this.ws?.close();
+        }, 5000);
+
         this.ws.onopen = () => {
-          this.isConnected = true;
-          console.log('[Puppet Client] Connected to server');
-          resolve();
+          // Send identification as client
+          this.ws.send(JSON.stringify({
+            type: 'identify',
+            role: 'client',
+            apiKey: this.config.apiKey,
+            name: 'remote-client'
+          }));
         };
 
         this.ws.onmessage = (event) => {
           const data = typeof event.data === 'string' ? event.data : event.data.toString();
+          const message = JSON.parse(data);
+
+          // Wait for ready confirmation before marking as connected
+          if (!this.isConnected && message.type === 'ready') {
+            clearTimeout(identifyTimeout);
+            this.isConnected = true;
+            console.log('[Puppet Client] Connected and identified');
+            resolve();
+            return;
+          }
+
+          if (!this.isConnected && message.type === 'error') {
+            clearTimeout(identifyTimeout);
+            reject(new Error(message.error || 'Connection error'));
+            this.ws?.close();
+            return;
+          }
+
           this.handleMessage(data);
         };
 
         this.ws.onclose = () => {
+          clearTimeout(identifyTimeout);
           this.isConnected = false;
           console.log('[Puppet Client] Disconnected from server');
           
@@ -65,6 +93,7 @@ class PuppetClient {
         this.ws.onerror = (error) => {
           console.error('[Puppet Client] WebSocket error:', error);
           if (!this.isConnected) {
+            clearTimeout(identifyTimeout);
             reject(new Error('Failed to connect to puppet server'));
           }
         };
@@ -100,18 +129,25 @@ class PuppetClient {
     try {
       const message = JSON.parse(data);
       
-      if (message.type === 'connected') {
-        console.log('[Puppet Client]', message.message);
+      if (message.type === 'agent-status') {
+        console.log('[Puppet Client] Agent status:', message.status);
         return;
       }
 
-      const { id, success, data: responseData, error } = message;
-      
-      if (id && this.pendingRequests.has(id)) {
-        const { resolve, timeout } = this.pendingRequests.get(id);
-        clearTimeout(timeout);
-        this.pendingRequests.delete(id);
-        resolve({ success, data: responseData, error });
+      if (message.type === 'event') {
+        console.log('[Puppet Client] Event:', message.event);
+        return;
+      }
+
+      if (message.type === 'response') {
+        const { id, success, data: responseData, error } = message;
+        if (id && this.pendingRequests.has(id)) {
+          const { resolve, timeout } = this.pendingRequests.get(id);
+          clearTimeout(timeout);
+          this.pendingRequests.delete(id);
+          resolve({ success, data: responseData, error });
+        }
+        return;
       }
     } catch (error) {
       console.error('[Puppet Client] Failed to parse message:', error);
@@ -136,10 +172,10 @@ class PuppetClient {
       this.pendingRequests.set(id, { resolve, reject, timeout });
 
       const message = {
+        type: 'command',
         id,
         method,
         params,
-        apiKey: this.config.apiKey,
       };
 
       this.ws.send(JSON.stringify(message));

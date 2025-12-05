@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Puppet Server - Native Messaging Host
- * Bridges WebSocket/HTTP clients with the Chrome extension
+ * Puppet Server - Remote Coordinator
+ * Orchestrates communication between browser agents (extensions) and remote clients
  */
 
 const fs = require('fs');
@@ -27,7 +27,7 @@ function readConfigFile() {
 
 const defaultConfig = {
   websocket: {
-    host: 'localhost',
+    host: '0.0.0.0',
     port: 9222,
   },
   http: {
@@ -36,6 +36,7 @@ const defaultConfig = {
   },
   security: {
     apiKey: null,
+    agentSecret: null,
     allowedOrigins: ['*'],
   },
   debug: false,
@@ -71,6 +72,8 @@ const config = {
   },
   security: {
     apiKey: process.env.PUPPET_API_KEY || fileConfig.security?.apiKey || defaultConfig.security.apiKey,
+    agentSecret:
+      process.env.PUPPET_AGENT_SECRET || fileConfig.security?.agentSecret || defaultConfig.security.agentSecret,
     allowedOrigins:
       allowedOriginsEnv || fileConfig.security?.allowedOrigins || defaultConfig.security.allowedOrigins,
   },
@@ -83,10 +86,10 @@ const config = {
 };
 
 // State
-let extensionPort = null;
-let messageId = 0;
-const pendingRequests = new Map();
-const wsClients = new Set();
+let agentConnection = null;
+let requestCounter = 0;
+const pendingCommands = new Map(); // id -> { client, timeout }
+const clients = new Set();
 
 function isOriginAllowed(origin) {
   if (!origin || config.security.allowedOrigins.includes('*')) {
@@ -95,328 +98,20 @@ function isOriginAllowed(origin) {
   return config.security.allowedOrigins.includes(origin);
 }
 
-function authorizeRequest(apiKey) {
+function authorizeClient(apiKey) {
   if (!config.security.apiKey) {
     return true;
   }
   return apiKey === config.security.apiKey;
 }
 
-function getHeaderValue(value) {
-  if (Array.isArray(value)) {
-    return value[0];
+function authorizeAgent(secret) {
+  if (!config.security.agentSecret) {
+    return true;
   }
-  return value;
+  return secret === config.security.agentSecret;
 }
 
-/**
- * Native Messaging with Chrome Extension
- */
-function setupNativeMessaging() {
-  const stdin = process.stdin;
-  const stdout = process.stdout;
-  
-  let buffer = Buffer.alloc(0);
-  let messageLength = null;
-
-  stdin.on('data', (chunk) => {
-    buffer = Buffer.concat([buffer, chunk]);
-    
-    while (buffer.length >= 4) {
-      if (messageLength === null) {
-        messageLength = buffer.readUInt32LE(0);
-        buffer = buffer.slice(4);
-      }
-      
-      if (buffer.length >= messageLength) {
-        const messageData = buffer.slice(0, messageLength);
-        buffer = buffer.slice(messageLength);
-        messageLength = null;
-        
-        try {
-          const message = JSON.parse(messageData.toString('utf-8'));
-          handleExtensionMessage(message);
-        } catch (error) {
-          logError('Failed to parse message from extension:', error);
-        }
-      } else {
-        break;
-      }
-    }
-  });
-
-  stdin.on('end', () => {
-    log('Extension disconnected');
-    process.exit(0);
-  });
-
-  extensionPort = {
-    send: (message) => {
-      try {
-        const messageStr = JSON.stringify(message);
-        const messageBuffer = Buffer.from(messageStr, 'utf-8');
-        const lengthBuffer = Buffer.alloc(4);
-        lengthBuffer.writeUInt32LE(messageBuffer.length, 0);
-        
-        stdout.write(lengthBuffer);
-        stdout.write(messageBuffer);
-      } catch (error) {
-        logError('Failed to send message to extension:', error);
-      }
-    }
-  };
-  
-  log('Native messaging initialized');
-}
-
-/**
- * Handle messages from extension
- */
-function handleExtensionMessage(message) {
-  if (config.debug) {
-    log('Message from extension:', message);
-  }
-
-  const { id, success, data, error } = message;
-  
-  if (pendingRequests.has(id)) {
-    const { resolve } = pendingRequests.get(id);
-    pendingRequests.delete(id);
-    resolve({ success, data, error });
-  }
-}
-
-/**
- * Send command to extension
- */
-async function sendToExtension(command) {
-  return new Promise((resolve, reject) => {
-    const id = `msg_${++messageId}`;
-    const timeout = setTimeout(() => {
-      pendingRequests.delete(id);
-      reject(new Error('Request timeout'));
-    }, 30000); // 30 second timeout
-
-    pendingRequests.set(id, {
-      resolve: (response) => {
-        clearTimeout(timeout);
-        resolve(response);
-      }
-    });
-
-    if (extensionPort) {
-      extensionPort.send({ ...command, id });
-    } else {
-      clearTimeout(timeout);
-      pendingRequests.delete(id);
-      reject(new Error('Extension not connected'));
-    }
-  });
-}
-
-/**
- * WebSocket Server
- */
-function setupWebSocketServer() {
-  const wss = new WebSocket.Server({
-    host: config.websocket.host,
-    port: config.websocket.port
-  });
-
-  wss.on('connection', (ws, req) => {
-    log(`WebSocket client connected from ${req.socket.remoteAddress}`);
-    
-    const origin = req.headers.origin || '';
-    if (origin && !isOriginAllowed(origin)) {
-      log(`Rejected connection from unauthorized origin: ${origin}`);
-      ws.close(1008, 'Unauthorized origin');
-      return;
-    }
-    
-    wsClients.add(ws);
-
-    ws.on('message', async (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        if (config.debug) {
-          log('WebSocket message:', message);
-        }
-        
-        if (!authorizeRequest(message.apiKey)) {
-          ws.send(JSON.stringify({
-            id: message.id,
-            success: false,
-            error: 'Unauthorized: Invalid API key'
-          }));
-          return;
-        }
-
-        const response = await handleClientCommand(message);
-        
-        ws.send(JSON.stringify({
-          id: message.id,
-          ...response
-        }));
-      } catch (error) {
-        ws.send(JSON.stringify({
-          success: false,
-          error: error.message
-        }));
-      }
-    });
-
-    ws.on('close', () => {
-      log('WebSocket client disconnected');
-      wsClients.delete(ws);
-    });
-
-    ws.on('error', (error) => {
-      logError('WebSocket error:', error);
-      wsClients.delete(ws);
-    });
-
-    // Send welcome message
-    ws.send(JSON.stringify({
-      type: 'connected',
-      message: 'Connected to Puppet Server',
-      version: '1.0.0'
-    }));
-  });
-
-  log(`WebSocket server listening on ws://${config.websocket.host}:${config.websocket.port}`);
-}
-
-/**
- * HTTP Server (for REST API)
- */
-function setupHttpServer() {
-  if (!config.http.enabled) return;
-
-  const server = http.createServer(async (req, res) => {
-    const origin = req.headers.origin || '';
-    if (origin && !isOriginAllowed(origin)) {
-      res.writeHead(403, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: 'Origin not allowed' }));
-      return;
-    }
-
-    const responseOrigin = origin || '*';
-    res.setHeader('Access-Control-Allow-Origin', responseOrigin);
-    res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
-
-    if (req.method === 'OPTIONS') {
-      res.writeHead(204);
-      res.end();
-      return;
-    }
-
-    if (req.method === 'POST') {
-      let body = '';
-      req.on('data', (chunk) => (body += chunk));
-      req.on('end', async () => {
-        try {
-          const message = JSON.parse(body);
-          const headerApiKey = getHeaderValue(req.headers['x-api-key']);
-          if (!message.apiKey && headerApiKey) {
-            message.apiKey = headerApiKey;
-          }
-          const response = await handleClientCommand(message);
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(response));
-        } catch (error) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(
-            JSON.stringify({
-              success: false,
-              error: error.message,
-            })
-          );
-        }
-      });
-    } else if (req.method === 'GET' && req.url === '/health') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          status: 'ok',
-          extensionConnected: extensionPort !== null,
-          clients: wsClients.size,
-        })
-      );
-    } else {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: 'Not Found' }));
-    }
-  });
-
-  server.listen(config.http.port, config.websocket.host, () => {
-    log(`HTTP server listening on http://${config.websocket.host}:${config.http.port}`);
-  });
-}
-
-/**
- * Handle command from client (WebSocket or HTTP)
- */
-async function handleClientCommand(message) {
-  const { method, params = {}, apiKey } = message;
-
-  if (!authorizeRequest(apiKey)) {
-    return {
-      success: false,
-      error: 'Unauthorized: Invalid API key'
-    };
-  }
-
-  // Map method to extension message type
-  const methodMap = {
-    navigate: 'NAVIGATE',
-    navigateBack: 'NAVIGATE_BACK',
-    getDOM: 'GET_DOM',
-    getAllText: 'GET_ALL_TEXT',
-    takeScreenshot: 'TAKE_SCREENSHOT',
-    injectScript: 'INJECT_SCRIPT',
-    getStorage: 'GET_STORAGE',
-    setStorage: 'SET_STORAGE',
-    getCookies: 'GET_COOKIES',
-    setCookie: 'SET_COOKIE',
-    deleteCookie: 'DELETE_COOKIE',
-    startNetworkCapture: 'START_NETWORK_CAPTURE',
-    stopNetworkCapture: 'STOP_NETWORK_CAPTURE',
-    getNetworkLog: 'GET_NETWORK_LOG',
-    clearNetworkLog: 'CLEAR_NETWORK_LOG',
-  };
-
-  const messageType = methodMap[method];
-  if (!messageType) {
-    return {
-      success: false,
-      error: `Unknown method: ${method}`,
-    };
-  }
-
-  return await sendToExtension({
-    type: messageType,
-    ...params,
-  });
-}
-
-/**
- * Broadcast message to all WebSocket clients
- */
-function broadcastToClients(message) {
-  const messageStr = JSON.stringify(message);
-  wsClients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(messageStr);
-    }
-  });
-}
-
-/**
- * Logging utilities
- */
 function log(...args) {
   console.error('[Puppet Server]', ...args);
 }
@@ -425,33 +120,285 @@ function logError(...args) {
   console.error('[Puppet Server ERROR]', ...args);
 }
 
-/**
- * Initialize server
- */
+function setupWebSocketServer() {
+  const wss = new WebSocket.Server({
+    host: config.websocket.host,
+    port: config.websocket.port,
+  });
+
+  wss.on('connection', (socket, req) => {
+    log(`New connection from ${req.socket.remoteAddress}`);
+
+    let role = null;
+    let clientInfo = null;
+
+    socket.on('message', (raw) => {
+      try {
+        const message = JSON.parse(raw.toString());
+        if (config.debug) {
+          log('Received message:', message);
+        }
+
+        if (!role) {
+          if (message.type !== 'identify') {
+            socket.send(JSON.stringify({ type: 'error', error: 'Identification required' }));
+            socket.close(1008, 'Identify first');
+            return;
+          }
+
+          if (message.role === 'agent') {
+            if (!authorizeAgent(message.secret)) {
+              socket.send(JSON.stringify({ type: 'error', error: 'Unauthorized agent' }));
+              socket.close(1011, 'Unauthorized');
+              return;
+            }
+
+            role = 'agent';
+            registerAgent(socket, message);
+            return;
+          }
+
+          if (message.role === 'client') {
+            if (!authorizeClient(message.apiKey)) {
+              socket.send(JSON.stringify({ type: 'error', error: 'Unauthorized client' }));
+              socket.close(1011, 'Unauthorized');
+              return;
+            }
+
+            role = 'client';
+            clientInfo = { socket, name: message.name || 'remote-client' };
+            clients.add(clientInfo);
+            socket.send(JSON.stringify({ type: 'ready', role: 'client' }));
+            notifyClientAgentStatus(socket);
+            return;
+          }
+
+          socket.send(JSON.stringify({ type: 'error', error: 'Unknown role' }));
+          socket.close(1008, 'Unknown role');
+          return;
+        }
+
+        if (role === 'agent') {
+          handleAgentMessage(socket, message);
+        } else if (role === 'client') {
+          handleClientMessage(socket, message);
+        }
+      } catch (error) {
+        logError('Failed to process message:', error);
+        socket.send(JSON.stringify({ type: 'error', error: 'Invalid message format' }));
+      }
+    });
+
+    socket.on('close', () => {
+      if (role === 'agent' && agentConnection?.socket === socket) {
+        log('Agent disconnected');
+        agentConnection = null;
+        failPendingCommands('Agent disconnected');
+        broadcast({ type: 'agent-status', status: 'offline' });
+      }
+
+      if (role === 'client' && clientInfo) {
+        clients.delete(clientInfo);
+        cleanupPendingForClient(socket);
+      }
+    });
+
+    socket.on('error', (error) => {
+      logError('WebSocket error:', error);
+    });
+  });
+
+  log(`WebSocket server listening on ws://${config.websocket.host}:${config.websocket.port}`);
+}
+
+function registerAgent(socket, identifyMessage) {
+  agentConnection = {
+    socket,
+    info: {
+      agentId: identifyMessage.agentId || 'default-agent',
+      name: identifyMessage.name || 'supextension-agent',
+      version: identifyMessage.version || '1.0.0',
+    },
+  };
+
+  socket.send(
+    JSON.stringify({
+      type: 'ready',
+      role: 'agent',
+      agentId: agentConnection.info.agentId,
+    })
+  );
+
+  broadcast({ type: 'agent-status', status: 'online', info: agentConnection.info });
+  log(`Agent connected: ${agentConnection.info.agentId}`);
+}
+
+function handleClientMessage(socket, message) {
+  if (message.type !== 'command') {
+    socket.send(JSON.stringify({ type: 'error', error: 'Unsupported client message type' }));
+    return;
+  }
+
+  if (!agentConnection) {
+    socket.send(
+      JSON.stringify({
+        type: 'response',
+        id: message.id,
+        success: false,
+        error: 'No agent connected',
+      })
+    );
+    return;
+  }
+
+  const commandId = message.id || `cmd_${++requestCounter}`;
+  const timeout = setTimeout(() => {
+    if (pendingCommands.has(commandId)) {
+      const pending = pendingCommands.get(commandId);
+      pending.client.send(
+        JSON.stringify({
+          type: 'response',
+          id: commandId,
+          success: false,
+          error: 'Command timeout',
+        })
+      );
+      pendingCommands.delete(commandId);
+    }
+  }, 30000);
+
+  pendingCommands.set(commandId, { client: socket, timeout });
+
+  agentConnection.socket.send(
+    JSON.stringify({
+      type: 'command',
+      id: commandId,
+      method: message.method,
+      params: message.params || {},
+    })
+  );
+}
+
+function handleAgentMessage(socket, message) {
+  if (socket !== agentConnection?.socket) {
+    logError('Received agent message from unknown socket');
+    return;
+  }
+
+  if (message.type === 'response') {
+    const pending = pendingCommands.get(message.id);
+    if (!pending) {
+      return;
+    }
+
+    clearTimeout(pending.timeout);
+    pending.client.send(
+      JSON.stringify({
+        type: 'response',
+        id: message.id,
+        success: message.success,
+        data: message.data,
+        error: message.error,
+      })
+    );
+    pendingCommands.delete(message.id);
+    return;
+  }
+
+  if (message.type === 'event') {
+    broadcast({
+      type: 'event',
+      event: message.event,
+      data: message.data,
+    });
+  }
+}
+
+function failPendingCommands(reason) {
+  pendingCommands.forEach((pending, id) => {
+    clearTimeout(pending.timeout);
+    pending.client.send(
+      JSON.stringify({
+        type: 'response',
+        id,
+        success: false,
+        error: reason,
+      })
+    );
+  });
+  pendingCommands.clear();
+}
+
+function cleanupPendingForClient(socket) {
+  pendingCommands.forEach((pending, id) => {
+    if (pending.client === socket) {
+      clearTimeout(pending.timeout);
+      pendingCommands.delete(id);
+    }
+  });
+}
+
+function broadcast(message) {
+  const payload = JSON.stringify(message);
+  clients.forEach((client) => {
+    if (client.socket.readyState === WebSocket.OPEN) {
+      client.socket.send(payload);
+    }
+  });
+}
+
+function notifyClientAgentStatus(socket) {
+  const statusMessage = {
+    type: 'agent-status',
+    status: agentConnection ? 'online' : 'offline',
+    info: agentConnection?.info,
+  };
+  socket.send(JSON.stringify(statusMessage));
+}
+
+function setupHttpServer() {
+  if (!config.http.enabled) return;
+
+  const server = http.createServer((req, res) => {
+    if (req.method === 'GET' && req.url === '/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          status: 'ok',
+          agentConnected: Boolean(agentConnection),
+          clients: clients.size,
+        })
+      );
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: false, error: 'Not Found' }));
+  });
+
+  server.listen(config.http.port, config.websocket.host, () => {
+    log(`HTTP server listening on http://${config.websocket.host}:${config.http.port}`);
+  });
+}
+
 function main() {
   log('Starting Puppet Server...');
-  log('Configuration:', JSON.stringify(config, null, 2));
+  log('Configuration:', JSON.stringify({ ...config, security: { ...config.security, apiKey: config.security.apiKey ? '***' : null, agentSecret: config.security.agentSecret ? '***' : null } }, null, 2));
 
-  // Setup communication channels
-  setupNativeMessaging();
   setupWebSocketServer();
   setupHttpServer();
 
-  // Handle process termination
-  process.on('SIGINT', () => {
-    log('Shutting down...');
-    process.exit(0);
-  });
-
-  process.on('SIGTERM', () => {
-    log('Shutting down...');
-    process.exit(0);
-  });
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 
   log('Puppet Server ready');
 }
 
-// Start server
+function shutdown() {
+  log('Shutting down...');
+  process.exit(0);
+}
+
 if (require.main === module) {
   main();
 }

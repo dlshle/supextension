@@ -1,6 +1,6 @@
 {
   "websocket": {
-    "host": "localhost",
+    "host": "0.0.0.0",
     "port": 9222
   },
   "http": {
@@ -9,6 +9,7 @@
   },
   "security": {
     "apiKey": null,
+    "agentSecret": null,
     "allowedOrigins": ["*"]
   },
   "debug": false
