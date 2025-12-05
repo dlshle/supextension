@@ -1,13 +1,33 @@
-FROM zenika/alpine-chrome:latest
+FROM zenika/alpine-chrome:with-xfvb
 
 # Copy the extension
 COPY ./dist /opt/extension
 
-# Set up Chrome to run with the extension loaded by default
-ENV CHROME_OPTS="--disable-extensions-except=/opt/extension --load-extension=/opt/extension --no-sandbox --disable-dev-shm-usage --disable-gpu --disable-web-security --disable-ipc-flooding-protection --single-process --no-zygote --headless --disable-features=VizDisplayCompositor"
+# Copy a startup script to properly launch Chrome with extension
+RUN echo '#!/bin/sh\n\
+export DISPLAY=:99\n\
+Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &\n\
+sleep 3\n\
+exec google-chrome \\\n\
+  --disable-extensions-except=/opt/extension \\\n\
+  --load-extension=/opt/extension \\\n\
+  --no-sandbox \\\n\
+  --disable-dev-shm-usage \\\n\
+  --disable-gpu \\\n\
+  --disable-web-security \\\n\
+  --disable-extensions \\\n\
+  --disable-plugins \\\n\
+  --no-first-run \\\n\
+  --no-default-browser-check \\\n\
+  --user-data-dir=/tmp/chrome \\\n\
+  --disable-features=TranslateUI \\\n\
+  --disable-background-timer-throttling \\\n\
+  --disable-renderer-backgrounding \\\n\
+  --disable-backgrounding-occluded-windows' > /start.sh && \
+  chmod +x /start.sh
 
 # Expose VNC port
 EXPOSE 5900
 
-# Set the default command to start Chrome with the extension
-CMD ["sh", "-c", "google-chrome $CHROME_OPTS"]
+# Set the default command to run our startup script
+CMD ["/start.sh"]
