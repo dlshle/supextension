@@ -8,16 +8,23 @@
     "copy-assets": "node scripts/copy-assets.js",
     "clean": "rm -rf dist",
     "dev": "npm run build && npm run watch",
-    "icons": "node scripts/generate-icons.js"
+    "icons": "node scripts/generate-icons.js",
+    "puppet:start": "node puppet/server.js",
+    "puppet:example": "node puppet/examples/basic-usage.js"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.254",
     "typescript": "^5.3.3"
   },
+  "dependencies": {
+    "ws": "^8.14.2"
+  },
   "keywords": [
     "chrome-extension",
     "browser-automation",
-    "dom-manipulation"
+    "dom-manipulation",
+    "puppet",
+    "remote-control"
   ],
   "license": "MIT"
 }

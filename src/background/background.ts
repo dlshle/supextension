@@ -9,6 +9,7 @@ import type {
   NetworkLogEntry,
   WebSocketMessage,
 } from '../api/types.js';
+import { connectToServer } from './serverConnection.js';
 
 // Network log storage
 let networkLog: NetworkLogEntry[] = [];
@@ -32,6 +33,14 @@ function initialize(): void {
 
   // Set up network request listeners
   setupNetworkListeners();
+
+  // Connect to remote puppet server (URL configurable via storage)
+  chrome.storage.local.get({ puppetServerUrl: 'ws://localhost:9222' }, (items) => {
+    connectToServer(
+      (message) => handleMessage(message, undefined as unknown as chrome.runtime.MessageSender),
+      items.puppetServerUrl
+    );
+  });
 }
 
 /**
