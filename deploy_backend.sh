@@ -3,8 +3,8 @@
 set -e  # Exit immediately if a command exits with a non-zero status
 
 # Configuration
-IMAGE_NAME="supextension-puppet"
-CONTAINER_NAME="supextension-puppet-container"
+IMAGE_NAME="supextension-puppet-server"
+CONTAINER_NAME="supextension-puppet-server-container"
 PORT_WS=9222
 PORT_HTTP=9223
 
@@ -13,7 +13,7 @@ echo "Starting deployment of Supextension Puppet Server..."
 # Function to cleanup old containers and images
 cleanup_old() {
     echo "Cleaning up old containers and images..."
-    
+
     # Stop and remove old container if it exists
     if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
         echo "Stopping old container: $CONTAINER_NAME"
@@ -23,7 +23,7 @@ cleanup_old() {
     else
         echo "No existing container found with name: $CONTAINER_NAME"
     fi
-    
+
     # Remove old image if it exists
     if [ "$(docker images -q $IMAGE_NAME 2>/dev/null)" ]; then
         echo "Removing old image: $IMAGE_NAME"
@@ -36,7 +36,7 @@ cleanup_old() {
 # Function to build new image
 build_image() {
     echo "Building new Docker image: $IMAGE_NAME"
-    docker build -t $IMAGE_NAME . --no-cache
+    docker build -f Dockerfile.server -t $IMAGE_NAME . --no-cache
     echo "Image built successfully"
 }
 

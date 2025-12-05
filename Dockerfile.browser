@@ -1,0 +1,3 @@
+FROM zenika/alpine-chrome:latest
+
+COPY ./dist /opt/extension
