@@ -58,8 +58,8 @@ run_container() {
     docker run -d \
         --name $CONTAINER_NAME \
         -v $(pwd)/dist:/opt/extension \
-        -e CHROME_OPTS="--disable-extensions-except=/opt/extension --load-extension=/opt/extension --no-sandbox --disable-gpu --user-data-dir=/tmp/chrome" \
         -p $PORT_VNC:$PORT_VNC \
+        -p 9222:9222 \
         $IMAGE_NAME
 
     echo "Container started successfully"
@@ -79,6 +79,7 @@ check_status() {
 
     echo "Browser extension container is running!"
     echo "VNC server available at: localhost:$PORT_VNC"
+    echo "Chrome remote debugging available at: localhost:9222"
     echo ""
     echo "To view logs: docker logs $CONTAINER_NAME"
     echo "To stop: docker stop $CONTAINER_NAME"

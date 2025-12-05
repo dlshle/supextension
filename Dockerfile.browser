@@ -1,3 +1,13 @@
 FROM zenika/alpine-chrome:latest
 
+# Copy the extension
 COPY ./dist /opt/extension
+
+# Set up Chrome to run with the extension loaded by default
+ENV CHROME_OPTS="--disable-extensions-except=/opt/extension --load-extension=/opt/extension --no-sandbox --disable-dev-shm-usage --disable-gpu --disable-web-security --user-data-dir=/tmp/chrome --remote-debugging-port=9222"
+
+# Expose VNC port and Chrome debugging port
+EXPOSE 5900 9222
+
+# Set the default command to start Chrome with the extension
+CMD ["sh", "-c", "google-chrome $CHROME_OPTS"]
