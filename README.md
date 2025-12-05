@@ -214,3 +214,50 @@ See [puppet.md](./puppet.md) and [puppet/README.md](./puppet/README.md) for comp
 
 MIT
 
+## Docker Deployment
+
+The Puppet server can be deployed using Docker for easier distribution and scaling.
+
+### Prerequisites
+- Docker installed on your system
+
+### Quick Deploy
+Run the deployment script to build and start the container:
+```bash
+./deploy.sh
+```
+
+### Manual Docker Deployment
+To build and run manually:
+
+1. Build the image:
+   ```bash
+   docker build -t supextension-puppet .
+   ```
+
+2. Run the container:
+   ```bash
+   docker run -d \
+     --name supextension-puppet-container \
+     -p 9222:9222 \
+     -p 9223:9223 \
+     -e PUPPET_HOST=0.0.0.0 \
+     -e PUPPET_PORT=9222 \
+     -e PUPPET_HTTP_PORT=9223 \
+     supextension-puppet
+   ```
+
+### Configuration via Environment Variables
+The Puppet server can be configured with the following environment variables:
+- `PUPPET_HOST`: Host address (default: 0.0.0.0)
+- `PUPPET_PORT`: WebSocket port (default: 9222)
+- `PUPPET_HTTP_PORT`: HTTP port (default: 9223)
+- `PUPPET_HTTP_ENABLED`: Enable HTTP server (default: true)
+- `PUPPET_API_KEY`: API key for client authentication
+- `PUPPET_AGENT_SECRET`: Secret for agent authentication
+- `PUPPET_ALLOWED_ORIGINS`: Comma-separated list of allowed origins
+- `PUPPET_DEBUG`: Enable debug logging (default: false)
+
+### Health Check
+Once deployed, verify the service is running at `http://localhost:9223/health`
+
