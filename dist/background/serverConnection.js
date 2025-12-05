@@ -5,7 +5,7 @@
 // WebSocket state
 let ws = null;
 let isConnecting = false;
-let serverUrl = 'ws://192.168.0.158:9222';
+let serverUrl = 'ws://39.105.177.200:9222';
 let messageHandler = null;
 // Agent metadata (sent during identification)
 const manifest = chrome.runtime.getManifest();
