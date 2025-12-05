@@ -44,6 +44,31 @@
       </button>
     </section>
 
+    <!-- Scrolling Section -->
+    <section class="section">
+      <h2 class="section-title">Scrolling</h2>
+      <div class="btn-grid">
+        <button id="scrollTopBtn" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 12L4 8M8 12L12 8M8 12V4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Scroll Top
+        </button>
+        <button id="scrollBottomBtn" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 4L4 8M8 4L12 8M8 4V12" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Scroll Bottom
+        </button>
+      </div>
+      <button id="scrollCustomBtn" class="btn btn-secondary btn-full">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M3 8h10M8 3v10" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>
+        Custom Scroll
+      </button>
+    </section>
+
     <!-- DOM & Content Section -->
     <section class="section">
       <h2 class="section-title">Content</h2>
@@ -160,8 +185,45 @@
         </button>
       </div>
       <textarea id="scriptInput" class="textarea" placeholder="Enter JavaScript code..."></textarea>
+      <div class="help-text" style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(59, 130, 246, 0.1); border-radius: 4px; font-size: 0.75rem; color: var(--color-text);">
+        <strong>💡 Tip:</strong> To dispatch events: <code style="display: block; margin-top: 0.25rem; font-family: monospace; font-size: 0.7rem;">const el = document.querySelector('#myButton'); el.dispatchEvent(new Event('click'));</code>
+      </div>
       <div class="modal-footer">
         <button id="executeScriptBtn" class="btn btn-primary">Execute</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll Custom Modal -->
+  <div id="scrollModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Custom Scroll</h3>
+        <button id="closeScrollModalBtn" class="btn btn-icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="scrollXInput">X Position (pixels, optional)</label>
+          <input type="number" id="scrollXInput" class="input" placeholder="Leave blank for no horizontal scroll">
+        </div>
+        <div class="form-group">
+          <label for="scrollYInput">Y Position (pixels, optional)</label>
+          <input type="number" id="scrollYInput" class="input" placeholder="Leave blank to scroll to bottom">
+        </div>
+        <div class="form-group">
+          <label for="scrollBehaviorSelect">Scroll Behavior</label>
+          <select id="scrollBehaviorSelect" class="input">
+            <option value="smooth">Smooth</option>
+            <option value="auto">Auto (instant)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="executeScrollBtn" class="btn btn-primary">Scroll</button>
       </div>
     </div>
   </div>

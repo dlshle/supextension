@@ -17,6 +17,11 @@ const elements = {
   navigateBtn: document.getElementById('navigateBtn') as HTMLButtonElement,
   backBtn: document.getElementById('backBtn') as HTMLButtonElement,
   
+  // Scrolling
+  scrollTopBtn: document.getElementById('scrollTopBtn') as HTMLButtonElement,
+  scrollBottomBtn: document.getElementById('scrollBottomBtn') as HTMLButtonElement,
+  scrollCustomBtn: document.getElementById('scrollCustomBtn') as HTMLButtonElement,
+  
   // Content
   getDomBtn: document.getElementById('getDomBtn') as HTMLButtonElement,
   getTextBtn: document.getElementById('getTextBtn') as HTMLButtonElement,
@@ -44,6 +49,14 @@ const elements = {
   closeModalBtn: document.getElementById('closeModalBtn') as HTMLButtonElement,
   scriptInput: document.getElementById('scriptInput') as HTMLTextAreaElement,
   executeScriptBtn: document.getElementById('executeScriptBtn') as HTMLButtonElement,
+  
+  // Scroll Modal
+  scrollModal: document.getElementById('scrollModal') as HTMLDivElement,
+  closeScrollModalBtn: document.getElementById('closeScrollModalBtn') as HTMLButtonElement,
+  scrollXInput: document.getElementById('scrollXInput') as HTMLInputElement,
+  scrollYInput: document.getElementById('scrollYInput') as HTMLInputElement,
+  scrollBehaviorSelect: document.getElementById('scrollBehaviorSelect') as HTMLSelectElement,
+  executeScrollBtn: document.getElementById('executeScrollBtn') as HTMLButtonElement,
 };
 
 // State
@@ -83,6 +96,11 @@ function setupEventListeners(): void {
   });
   elements.backBtn.addEventListener('click', handleNavigateBack);
   
+  // Scrolling
+  elements.scrollTopBtn.addEventListener('click', handleScrollToTop);
+  elements.scrollBottomBtn.addEventListener('click', handleScrollToBottom);
+  elements.scrollCustomBtn.addEventListener('click', () => openScrollModal());
+  
   // Content
   elements.getDomBtn.addEventListener('click', handleGetDOM);
   elements.getTextBtn.addEventListener('click', handleGetText);
@@ -108,6 +126,13 @@ function setupEventListeners(): void {
   elements.executeScriptBtn.addEventListener('click', handleExecuteScript);
   elements.injectModal.addEventListener('click', (e) => {
     if (e.target === elements.injectModal) closeModal();
+  });
+  
+  // Scroll Modal
+  elements.closeScrollModalBtn.addEventListener('click', closeScrollModal);
+  elements.executeScrollBtn.addEventListener('click', handleCustomScroll);
+  elements.scrollModal.addEventListener('click', (e) => {
+    if (e.target === elements.scrollModal) closeScrollModal();
   });
 }
 
@@ -149,6 +174,79 @@ async function handleNavigateBack(): Promise<void> {
   } else {
     showOutput(`Navigation failed: ${response.error}`, 'error');
   }
+}
+
+/**
+ * Handle scroll to top
+ */
+async function handleScrollToTop(): Promise<void> {
+  setLoading(true);
+  const response = await browserController.scroll(undefined, 0, 'smooth');
+  setLoading(false);
+  
+  if (response.success) {
+    showOutput('Scrolled to top', 'success');
+  } else {
+    showOutput(`Scroll failed: ${response.error}`, 'error');
+  }
+}
+
+/**
+ * Handle scroll to bottom
+ */
+async function handleScrollToBottom(): Promise<void> {
+  setLoading(true);
+  const response = await browserController.scroll(undefined, undefined, 'smooth');
+  setLoading(false);
+  
+  if (response.success) {
+    showOutput('Scrolled to bottom', 'success');
+  } else {
+    showOutput(`Scroll failed: ${response.error}`, 'error');
+  }
+}
+
+/**
+ * Handle custom scroll
+ */
+async function handleCustomScroll(): Promise<void> {
+  const xRaw = elements.scrollXInput.value.trim();
+  const yRaw = elements.scrollYInput.value.trim();
+  const x = xRaw ? Number(xRaw) : undefined;
+  const y = yRaw ? Number(yRaw) : undefined;
+  const behavior = elements.scrollBehaviorSelect.value as 'auto' | 'smooth';
+  
+  closeScrollModal();
+  setLoading(true);
+  const response = await browserController.scroll(x, y, behavior);
+  setLoading(false);
+  
+  if (response.success) {
+    const position = x !== undefined || y !== undefined 
+      ? `to (${x ?? 'auto'}, ${y ?? 'auto'})` 
+      : 'to bottom';
+    showOutput(`Scrolled ${position}`, 'success');
+  } else {
+    showOutput(`Scroll failed: ${response.error}`, 'error');
+  }
+}
+
+/**
+ * Open scroll modal
+ */
+function openScrollModal(): void {
+  elements.scrollModal.classList.add('active');
+  elements.scrollXInput.focus();
+}
+
+/**
+ * Close scroll modal
+ */
+function closeScrollModal(): void {
+  elements.scrollModal.classList.remove('active');
+  elements.scrollXInput.value = '';
+  elements.scrollYInput.value = '';
+  elements.scrollBehaviorSelect.value = 'smooth';
 }
 
 /**

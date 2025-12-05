@@ -126,9 +126,22 @@
     elements.navigateForm.addEventListener('submit', handleNavigateSubmit);
     elements.navigateBack.addEventListener('click', handleNavigateBack);
 
-    elements.scrollForm.addEventListener('submit', handleScrollSubmit);
-    elements.scrollToTop.addEventListener('click', handleScrollToTop);
-    elements.scrollToBottom.addEventListener('click', handleScrollToBottom);
+    // Scroll event handlers with defensive checks
+    if (elements.scrollForm) {
+      elements.scrollForm.addEventListener('submit', handleScrollSubmit);
+    } else {
+      console.error('[Puppet Console] scroll-form element not found');
+    }
+    if (elements.scrollToTop) {
+      elements.scrollToTop.addEventListener('click', handleScrollToTop);
+    } else {
+      console.error('[Puppet Console] scroll-to-top element not found');
+    }
+    if (elements.scrollToBottom) {
+      elements.scrollToBottom.addEventListener('click', handleScrollToBottom);
+    } else {
+      console.error('[Puppet Console] scroll-to-bottom element not found');
+    }
 
     elements.domForm.addEventListener('submit', handleDomSubmit);
     elements.textButton.addEventListener('click', handleGetText);
@@ -265,14 +278,23 @@
 
   function handleScrollSubmit(event) {
     event.preventDefault();
+    console.log('[Puppet Console] Scroll form submitted');
     const tabId = readTabId();
     if (tabId === null) return;
+
+    if (!elements.scrollX || !elements.scrollY || !elements.scrollBehavior) {
+      console.error('[Puppet Console] Scroll form elements not found');
+      addLog('Scroll form elements not found', 'error');
+      return;
+    }
 
     const xRaw = elements.scrollX.value.trim();
     const yRaw = elements.scrollY.value.trim();
     const x = xRaw ? Number(xRaw) : undefined;
     const y = yRaw ? Number(yRaw) : undefined;
     const behavior = elements.scrollBehavior.value;
+
+    console.log('[Puppet Console] Scroll params:', { x, y, behavior, tabId });
 
     if (x === undefined && y === undefined) {
       // If both are empty, scroll to bottom
@@ -283,15 +305,25 @@
   }
 
   function handleScrollToTop() {
+    console.log('[Puppet Console] Scroll to top clicked');
     const tabId = readTabId();
     if (tabId === null) return;
+    if (!elements.scrollBehavior) {
+      console.error('[Puppet Console] scroll-behavior element not found');
+      return;
+    }
     const behavior = elements.scrollBehavior.value;
     runCommand('Scroll to top', () => state.client.scroll(undefined, 0, behavior, tabId));
   }
 
   function handleScrollToBottom() {
+    console.log('[Puppet Console] Scroll to bottom clicked');
     const tabId = readTabId();
     if (tabId === null) return;
+    if (!elements.scrollBehavior) {
+      console.error('[Puppet Console] scroll-behavior element not found');
+      return;
+    }
     const behavior = elements.scrollBehavior.value;
     runCommand('Scroll to bottom', () => state.client.scroll(undefined, undefined, behavior, tabId));
   }
