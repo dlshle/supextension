@@ -2,7 +2,7 @@
   const { PuppetClient } = window;
   if (!PuppetClient) {
     console.error('[Puppet Console] PuppetClient is not available.');
-    alert('Puppet client library failed to load. Please ensure ../puppet/client.js is accessible.');
+    alert('Puppet client library failed to load. Please ensure ../client.js is accessible.');
     return;
   }
 

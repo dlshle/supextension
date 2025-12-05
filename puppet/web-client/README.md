@@ -42,7 +42,7 @@ Since this is a static web application, you can serve it using any HTTP server (
 python3 -m http.server 8080
 ```
 
-Then open [http://localhost:8080/web-client/](http://localhost:8080/web-client/) in your browser.
+Then open [http://localhost:8080/puppet/web-client/](http://localhost:8080/puppet/web-client/) in your browser.
 
 #### Option 2: Node.js http-server
 ```bash
@@ -50,11 +50,11 @@ npm install -g http-server
 http-server -p 8080 .
 ```
 
-Visit [http://localhost:8080/web-client/](http://localhost:8080/web-client/).
+Visit [http://localhost:8080/puppet/web-client/](http://localhost:8080/puppet/web-client/).
 
 #### Option 3: VS Code Live Server
 1. Install the "Live Server" extension in VS Code
-2. Right-click `web-client/index.html` (from the repo root) and select "Open with Live Server"
+2. Right-click `puppet/web-client/index.html` (from the repo root) and select "Open with Live Server"
 
 ### Connecting to the Puppet Server
 
@@ -205,7 +205,7 @@ The console can automatically reconnect if the connection drops:
 ### File Structure
 
 ```
-web-client/
+puppet/web-client/
 ├── index.html      # Main HTML structure
 ├── styles.css      # Complete styling and theming
 ├── app.js          # Application logic and event handlers
@@ -214,7 +214,7 @@ web-client/
 
 ### Dependencies
 
-- **PuppetClient**: The JavaScript client library (`../puppet/client.js`)
+- **PuppetClient**: The JavaScript client library (`../client.js`)
 - **WebSocket**: Native browser WebSocket API for real-time communication
 - No external frameworks or libraries required
 

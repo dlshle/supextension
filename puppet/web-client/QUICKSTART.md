@@ -26,7 +26,7 @@ npx http-server -p 8080
 
 ## Step 3: Open the Console
 
-Visit [http://localhost:8080/web-client/](http://localhost:8080/web-client/) in your browser.
+Visit [http://localhost:8080/puppet/web-client/](http://localhost:8080/puppet/web-client/) in your browser.
 
 You should see the **Remote Control Console** with:
 - A connection form at the top
@@ -115,7 +115,7 @@ The Chrome extension is not connected to the server. Check:
 ## Help & Support
 
 - See [web-client/README.md](./README.md) for detailed usage
-- See [puppet/README.md](../puppet/README.md) for server configuration
-- See [README.md](../README.md) for the main project documentation
+- See [puppet/README.md](../README.md) for server configuration
+- See [README.md](../../README.md) for the main project documentation
 
 Happy automating! 🎭
