@@ -35,7 +35,7 @@ function initialize(): void {
   setupNetworkListeners();
 
   // Connect to remote puppet server (URL configurable via storage)
-  chrome.storage.local.get({ puppetServerUrl: 'ws://localhost:9222' }, (items) => {
+  chrome.storage.local.get({ puppetServerUrl: 'ws://192.168.0.158:9222' }, (items) => {
     connectToServer(
       (message) => handleMessage(message, undefined as unknown as chrome.runtime.MessageSender),
       items.puppetServerUrl

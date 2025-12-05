@@ -8,7 +8,7 @@ import type { ApiResponse, ExtensionMessage } from '../api/types.js';
 // WebSocket state
 let ws: WebSocket | null = null;
 let isConnecting = false;
-let serverUrl = 'ws://localhost:9222';
+let serverUrl = 'ws://192.168.0.158:9222';
 
 // Handler provided by background.ts
 type MessageHandler = (message: ExtensionMessage) => Promise<ApiResponse>;
