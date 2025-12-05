@@ -461,9 +461,14 @@
   }
 
   async function runCommand(label, executor, options = {}) {
-    if (!ensureClient()) return;
+    if (!ensureClient()) {
+      console.log('[Puppet Console] runCommand: Client not connected');
+      return;
+    }
+    console.log(`[Puppet Console] runCommand: Executing ${label}`);
     try {
       const response = await executor();
+      console.log(`[Puppet Console] runCommand: ${label} response:`, response);
       if (response?.success) {
         if (options.logResponse) {
           addLog(`${label} succeeded`, 'success', response.data);
@@ -478,6 +483,7 @@
       options.onError?.(response);
       return response;
     } catch (error) {
+      console.error(`[Puppet Console] runCommand: ${label} exception:`, error);
       addLog(`${label} error`, 'error', error?.message || error);
       options.onException?.(error);
       return null;

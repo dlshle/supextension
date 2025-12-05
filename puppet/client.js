@@ -158,7 +158,9 @@ class PuppetClient {
    * Send command to puppet server
    */
   async sendCommand(method, params = {}) {
+    console.log('[Puppet Client] sendCommand called:', { method, params, isConnected: this.isConnected, ws: !!this.ws });
     if (!this.isConnected || !this.ws) {
+      console.error('[Puppet Client] Not connected:', { isConnected: this.isConnected, ws: !!this.ws });
       throw new Error('Not connected to puppet server');
     }
 
@@ -178,7 +180,16 @@ class PuppetClient {
         params,
       };
 
-      this.ws.send(JSON.stringify(message));
+      console.log('[Puppet Client] Sending message:', message);
+      try {
+        this.ws.send(JSON.stringify(message));
+        console.log('[Puppet Client] Message sent successfully');
+      } catch (error) {
+        console.error('[Puppet Client] Error sending message:', error);
+        this.pendingRequests.delete(id);
+        clearTimeout(timeout);
+        reject(error);
+      }
     });
   }
 
@@ -193,6 +204,7 @@ class PuppetClient {
   }
 
   async scroll(x, y, behavior, tabId) {
+    console.log('[Puppet Client] scroll called with:', { x, y, behavior, tabId });
     return this.sendCommand('scroll', { x, y, behavior, tabId });
   }
 
