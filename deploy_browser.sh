@@ -34,6 +34,11 @@ cleanup_old() {
 
 # Function to build new image
 build_image() {
+    echo "Checking if dist directory exists..."
+    if [ ! -d "dist" ]; then
+        echo "Error: dist directory not found. Please build the extension first."
+        exit 1
+    fi
     echo "Building new Docker image: $IMAGE_NAME"
     docker build -f Dockerfile.browser -t $IMAGE_NAME . --no-cache
     echo "Image built successfully"
