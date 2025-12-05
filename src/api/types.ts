@@ -18,7 +18,8 @@ export type MessageType =
   | 'GET_NETWORK_LOG'
   | 'CLEAR_NETWORK_LOG'
   | 'START_NETWORK_CAPTURE'
-  | 'STOP_NETWORK_CAPTURE';
+  | 'STOP_NETWORK_CAPTURE'
+  | 'SCROLL';
 
 export interface BaseMessage {
   type: MessageType;
@@ -32,6 +33,13 @@ export interface NavigateMessage extends BaseMessage {
 
 export interface NavigateBackMessage extends BaseMessage {
   type: 'NAVIGATE_BACK';
+}
+
+export interface ScrollMessage extends BaseMessage {
+  type: 'SCROLL';
+  x?: number;
+  y?: number;
+  behavior?: 'auto' | 'smooth';
 }
 
 export interface GetDOMMessage extends BaseMessage {
@@ -117,7 +125,8 @@ export type ExtensionMessage =
   | GetNetworkLogMessage
   | ClearNetworkLogMessage
   | StartNetworkCaptureMessage
-  | StopNetworkCaptureMessage;
+  | StopNetworkCaptureMessage
+  | ScrollMessage;
 
 // Response types
 export interface ApiResponse<T = unknown> {

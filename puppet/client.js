@@ -192,6 +192,10 @@ class PuppetClient {
     return this.sendCommand('navigateBack', { tabId });
   }
 
+  async scroll(x, y, behavior, tabId) {
+    return this.sendCommand('scroll', { x, y, behavior, tabId });
+  }
+
   // ==================== DOM APIs ====================
 
   async getDOM(selector, tabId) {

@@ -26,6 +26,12 @@
     navigateForm: document.getElementById('navigate-form'),
     navigateUrl: document.getElementById('navigate-url'),
     navigateBack: document.getElementById('navigate-back'),
+    scrollForm: document.getElementById('scroll-form'),
+    scrollX: document.getElementById('scroll-x'),
+    scrollY: document.getElementById('scroll-y'),
+    scrollBehavior: document.getElementById('scroll-behavior'),
+    scrollToTop: document.getElementById('scroll-to-top'),
+    scrollToBottom: document.getElementById('scroll-to-bottom'),
     domForm: document.getElementById('dom-form'),
     domSelector: document.getElementById('dom-selector'),
     domOutput: document.getElementById('dom-output'),
@@ -119,6 +125,10 @@
 
     elements.navigateForm.addEventListener('submit', handleNavigateSubmit);
     elements.navigateBack.addEventListener('click', handleNavigateBack);
+
+    elements.scrollForm.addEventListener('submit', handleScrollSubmit);
+    elements.scrollToTop.addEventListener('click', handleScrollToTop);
+    elements.scrollToBottom.addEventListener('click', handleScrollToBottom);
 
     elements.domForm.addEventListener('submit', handleDomSubmit);
     elements.textButton.addEventListener('click', handleGetText);
@@ -251,6 +261,39 @@
     const tabId = readTabId();
     if (tabId === null) return;
     runCommand('Navigate back', () => state.client.navigateBack(tabId));
+  }
+
+  function handleScrollSubmit(event) {
+    event.preventDefault();
+    const tabId = readTabId();
+    if (tabId === null) return;
+
+    const xRaw = elements.scrollX.value.trim();
+    const yRaw = elements.scrollY.value.trim();
+    const x = xRaw ? Number(xRaw) : undefined;
+    const y = yRaw ? Number(yRaw) : undefined;
+    const behavior = elements.scrollBehavior.value;
+
+    if (x === undefined && y === undefined) {
+      // If both are empty, scroll to bottom
+      runCommand('Scroll to bottom', () => state.client.scroll(undefined, undefined, behavior, tabId));
+    } else {
+      runCommand('Scroll page', () => state.client.scroll(x, y, behavior, tabId));
+    }
+  }
+
+  function handleScrollToTop() {
+    const tabId = readTabId();
+    if (tabId === null) return;
+    const behavior = elements.scrollBehavior.value;
+    runCommand('Scroll to top', () => state.client.scroll(undefined, 0, behavior, tabId));
+  }
+
+  function handleScrollToBottom() {
+    const tabId = readTabId();
+    if (tabId === null) return;
+    const behavior = elements.scrollBehavior.value;
+    runCommand('Scroll to bottom', () => state.client.scroll(undefined, undefined, behavior, tabId));
   }
 
   function handleDomSubmit(event) {

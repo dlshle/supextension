@@ -83,6 +83,29 @@ export class BrowserController {
     });
   }
 
+  /**
+   * Scroll the page
+   * @param x - Horizontal scroll position (pixels)
+   * @param y - Vertical scroll position (pixels)
+   * @param behavior - Scroll behavior ('auto' or 'smooth')
+   * @param tabId - Optional tab ID, uses active tab if not provided
+   */
+  async scroll(
+    x?: number,
+    y?: number,
+    behavior: 'auto' | 'smooth' = 'smooth',
+    tabId?: number
+  ): Promise<ApiResponse<void>> {
+    const targetTabId = tabId ?? (await this.getActiveTabId());
+    return this.sendMessage({
+      type: 'SCROLL',
+      x,
+      y,
+      behavior,
+      tabId: targetTabId,
+    });
+  }
+
   // ==================== DOM APIs ====================
 
   /**

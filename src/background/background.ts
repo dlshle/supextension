@@ -58,6 +58,9 @@ async function handleMessage(
       case 'NAVIGATE_BACK':
         return await handleNavigateBack(message.tabId);
 
+      case 'SCROLL':
+        return await handleScroll(message.tabId, message.x, message.y, message.behavior);
+
       case 'GET_DOM':
         return await handleGetDOM(message.tabId, message.selector);
 
@@ -144,6 +147,57 @@ async function handleNavigateBack(tabId?: number): Promise<ApiResponse> {
     }
 
     await chrome.tabs.goBack(targetTabId);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+/**
+ * Scroll the page
+ */
+async function handleScroll(
+  tabId?: number,
+  x?: number,
+  y?: number,
+  behavior: 'auto' | 'smooth' = 'smooth'
+): Promise<ApiResponse> {
+  try {
+    const targetTabId = tabId ?? (await getActiveTabId());
+    if (!targetTabId) {
+      return { success: false, error: 'No active tab found' };
+    }
+
+    await chrome.scripting.executeScript({
+      target: { tabId: targetTabId },
+      func: (scrollX: number | undefined, scrollY: number | undefined, scrollBehavior: 'auto' | 'smooth') => {
+        if (scrollX !== undefined && scrollY !== undefined) {
+          window.scrollTo({
+            left: scrollX,
+            top: scrollY,
+            behavior: scrollBehavior,
+          });
+        } else if (scrollY !== undefined) {
+          window.scrollTo({
+            top: scrollY,
+            behavior: scrollBehavior,
+          });
+        } else if (scrollX !== undefined) {
+          window.scrollTo({
+            left: scrollX,
+            behavior: scrollBehavior,
+          });
+        } else {
+          // Scroll to bottom if no coordinates provided
+          window.scrollTo({
+            top: document.documentElement.scrollHeight,
+            behavior: scrollBehavior,
+          });
+        }
+      },
+      args: [x, y, behavior],
+    });
+
     return { success: true };
   } catch (error) {
     return { success: false, error: (error as Error).message };

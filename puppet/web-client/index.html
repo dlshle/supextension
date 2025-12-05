@@ -87,6 +87,36 @@
         </section>
 
         <section class="card">
+          <h2>Page Scrolling</h2>
+          <form id="scroll-form" class="stacked-form">
+            <fieldset data-connection-guard disabled>
+              <div class="form-grid two">
+                <label class="form-field" for="scroll-x">
+                  <span>X Position (pixels, optional)</span>
+                  <input type="number" id="scroll-x" placeholder="Leave blank for no horizontal scroll" />
+                </label>
+                <label class="form-field" for="scroll-y">
+                  <span>Y Position (pixels, optional)</span>
+                  <input type="number" id="scroll-y" placeholder="Leave blank to scroll to bottom" />
+                </label>
+              </div>
+              <label class="form-field" for="scroll-behavior">
+                <span>Scroll Behavior</span>
+                <select id="scroll-behavior">
+                  <option value="smooth">Smooth</option>
+                  <option value="auto">Auto (instant)</option>
+                </select>
+              </label>
+              <div class="action-row">
+                <button type="submit" class="primary">Scroll</button>
+                <button type="button" id="scroll-to-top" class="ghost">Scroll to Top</button>
+                <button type="button" id="scroll-to-bottom" class="ghost">Scroll to Bottom</button>
+              </div>
+            </fieldset>
+          </form>
+        </section>
+
+        <section class="card">
           <h2>DOM & Text</h2>
           <form id="dom-form" class="stacked-form">
             <fieldset data-connection-guard disabled>
@@ -123,6 +153,10 @@
               <input type="text" id="wait-selector" placeholder="#app-ready" />
               <label for="script-code">JavaScript to run</label>
               <textarea id="script-code" rows="6" spellcheck="false">return document.title;</textarea>
+              <div class="help-text">
+                <strong>💡 Tip:</strong> To dispatch events on DOM elements, use script injection. Example:
+                <code>const el = document.querySelector('#myButton'); el.dispatchEvent(new Event('click'));</code>
+              </div>
               <button type="submit" class="primary">Run Script</button>
             </fieldset>
           </form>

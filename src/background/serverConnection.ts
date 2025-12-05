@@ -124,6 +124,7 @@ function toExtensionMessage(method: string, params: Record<string, unknown>): Ex
   const methodMap: Record<string, ExtensionMessage['type']> = {
     navigate: 'NAVIGATE',
     navigateBack: 'NAVIGATE_BACK',
+    scroll: 'SCROLL',
     getDOM: 'GET_DOM',
     getAllText: 'GET_ALL_TEXT',
     takeScreenshot: 'TAKE_SCREENSHOT',
