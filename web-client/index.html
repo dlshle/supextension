@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Supextension Puppet Console</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Puppet Service</p>
+          <h1>Remote Control Console</h1>
+          <p class="lead">
+            Connect to the Supextension Puppet server, monitor the agent, and run
+            browser automation actions without writing code.
+          </p>
+        </div>
+        <div class="status-summary">
+          <div>
+            <span>Connection</span>
+            <span id="connection-status" class="status-chip status-chip--disconnected">Disconnected</span>
+          </div>
+          <div>
+            <span>Agent</span>
+            <span id="agent-status" class="status-chip status-chip--unknown">Unknown</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="panels-grid">
+        <section class="card">
+          <h2>Server Connection</h2>
+          <form id="connection-form" class="stacked-form" autocomplete="off">
+            <div class="form-field">
+              <label for="server-url">WebSocket URL</label>
+              <input type="url" id="server-url" name="server-url" value="ws://localhost:9222"
+                placeholder="ws://host:9222" required />
+            </div>
+            <div class="form-field">
+              <label for="api-key">API Key (optional)</label>
+              <input type="password" id="api-key" name="api-key" placeholder="paste key" />
+            </div>
+            <div class="form-grid three">
+              <label class="form-field" for="timeout-input">
+                <span>Request Timeout (ms)</span>
+                <input type="number" id="timeout-input" name="timeout" min="1000" value="30000" />
+              </label>
+              <label class="form-field toggle-field">
+                <input type="checkbox" id="reconnect-toggle" name="reconnect" checked />
+                <span>Auto reconnect</span>
+              </label>
+              <label class="form-field" for="reconnect-delay-input">
+                <span>Reconnect Delay (ms)</span>
+                <input type="number" id="reconnect-delay-input" name="reconnect-delay" min="500" value="5000" />
+              </label>
+            </div>
+            <div class="action-row">
+              <button type="submit" id="connect-button" class="primary">Connect</button>
+              <button type="button" id="disconnect-button" disabled>Disconnect</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>Execution Context</h2>
+          <div class="form-field">
+            <label for="tab-id-input">Target Tab ID (optional)</label>
+            <input type="number" id="tab-id-input" placeholder="Active tab by default" />
+            <small>Leave blank to use the currently active tab in the agent browser.</small>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Navigation</h2>
+          <form id="navigate-form" class="stacked-form">
+            <fieldset data-connection-guard disabled>
+              <label for="navigate-url">Navigate to URL</label>
+              <div class="input-button">
+                <input type="url" id="navigate-url" placeholder="https://example.com" />
+                <button type="submit" class="primary">Go</button>
+              </div>
+              <button type="button" id="navigate-back" class="ghost">Navigate Back</button>
+            </fieldset>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>DOM & Text</h2>
+          <form id="dom-form" class="stacked-form">
+            <fieldset data-connection-guard disabled>
+              <label for="dom-selector">CSS Selector (optional)</label>
+              <input type="text" id="dom-selector" placeholder="body, #app, .headline" />
+              <div class="action-row">
+                <button type="submit" class="primary">Fetch DOM</button>
+                <button type="button" id="get-text" class="ghost">Get All Text</button>
+              </div>
+            </fieldset>
+          </form>
+          <div class="result-block">
+            <h3>DOM Snapshot</h3>
+            <pre id="dom-output">Connect to fetch DOM content.</pre>
+          </div>
+          <div class="result-block">
+            <h3>Visible Text</h3>
+            <textarea id="text-output" rows="6" readonly placeholder="Collect page text to see it here."></textarea>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Script Injection</h2>
+          <form id="script-form" class="stacked-form">
+            <fieldset data-connection-guard disabled>
+              <label for="script-timing">Execution Timing</label>
+              <select id="script-timing">
+                <option value="immediate">Immediate</option>
+                <option value="document_start">document_start</option>
+                <option value="document_end">document_end</option>
+                <option value="document_idle">document_idle</option>
+              </select>
+              <label for="wait-selector">Wait for selector (optional)</label>
+              <input type="text" id="wait-selector" placeholder="#app-ready" />
+              <label for="script-code">JavaScript to run</label>
+              <textarea id="script-code" rows="6" spellcheck="false">return document.title;</textarea>
+              <button type="submit" class="primary">Run Script</button>
+            </fieldset>
+          </form>
+          <div class="result-block">
+            <h3>Script Result</h3>
+            <pre id="script-output">Awaiting script execution.</pre>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Screenshots</h2>
+          <form id="screenshot-form" class="stacked-form">
+            <fieldset data-connection-guard disabled>
+              <div class="form-grid two">
+                <label class="form-field" for="screenshot-format">
+                  <span>Format</span>
+                  <select id="screenshot-format">
+                    <option value="png">PNG</option>
+                    <option value="jpeg">JPEG</option>
+                  </select>
+                </label>
+                <label class="form-field" for="screenshot-quality">
+                  <span>JPEG Quality (0-100)</span>
+                  <input type="number" id="screenshot-quality" min="0" max="100" value="80" disabled />
+                </label>
+              </div>
+              <button type="submit" class="primary">Capture Screenshot</button>
+            </fieldset>
+          </form>
+          <div class="screenshot-panel">
+            <div class="screenshot-frame">
+              <img id="screenshot-preview" alt="Screenshot preview" />
+            </div>
+            <button type="button" id="download-screenshot" disabled>Download Image</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Storage</h2>
+          <form id="get-storage-form" class="stacked-form">
+            <fieldset data-connection-guard disabled>
+              <div class="form-grid two">
+                <label class="form-field" for="storage-type">
+                  <span>Storage Type</span>
+                  <select id="storage-type">
+                    <option value="local">localStorage</option>
+                    <option value="session">sessionStorage</option>
+                  </select>
+                </label>
+                <label class="form-field" for="storage-keys">
+                  <span>Keys (comma separated)</span>
+                  <input type="text" id="storage-keys" placeholder="All keys by default" />
+                </label>
+              </div>
+              <button type="submit" class="ghost">Get Storage</button>
+            </fieldset>
+          </form>
+          <form id="set-storage-form" class="stacked-form">
+            <fieldset data-connection-guard disabled>
+              <div class="form-grid two">
+                <label class="form-field" for="storage-type-set">
+                  <span>Storage Type</span>
+                  <select id="storage-type-set">
+                    <option value="local">localStorage</option>
+                    <option value="session">sessionStorage</option>
+                  </select>
+                </label>
+                <label class="form-field" for="storage-json">
+                  <span>JSON payload</span>
+                  <textarea id="storage-json" rows="4" spellcheck="false" placeholder='{"example":"value"}'></textarea>
+                </label>
+              </div>
+              <button type="submit" class="primary">Set Storage</button>
+            </fieldset>
+          </form>
+          <div class="result-block">
+            <h3>Storage Output</h3>
+            <pre id="storage-output">Storage responses will appear here.</pre>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Cookies</h2>
+          <form id="get-cookies-form" class="stacked-form">
+            <fieldset data-connection-guard disabled>
+              <div class="form-grid two">
+                <label class="form-field" for="cookie-url">
+                  <span>URL (optional)</span>
+                  <input type="text" id="cookie-url" placeholder="https://example.com" />
+                </label>
+                <label class="form-field" for="cookie-name">
+                  <span>Cookie Name (optional)</span>
+                  <input type="text" id="cookie-name" placeholder="session" />
+                </label>
+              </div>
+              <button type="submit" class="ghost">Get Cookies</button>
+            </fieldset>
+          </form>
+          <form id="set-cookie-form" class="stacked-form">
+            <fieldset data-connection-guard disabled>
+              <label for="cookie-json">Cookie JSON (must include name &amp; url)</label>
+              <textarea id="cookie-json" rows="4" spellcheck="false" placeholder='{"name":"token","url":"https://example.com","value":"abc"}'></textarea>
+              <button type="submit" class="primary">Set Cookie</button>
+            </fieldset>
+          </form>
+          <form id="delete-cookie-form" class="stacked-form">
+            <fieldset data-connection-guard disabled>
+              <div class="form-grid two">
+                <label class="form-field" for="delete-cookie-url">
+                  <span>URL</span>
+                  <input type="text" id="delete-cookie-url" placeholder="https://example.com" />
+                </label>
+                <label class="form-field" for="delete-cookie-name">
+                  <span>Name</span>
+                  <input type="text" id="delete-cookie-name" placeholder="session" />
+                </label>
+              </div>
+              <button type="submit" class="danger">Delete Cookie</button>
+            </fieldset>
+          </form>
+          <div class="result-block">
+            <h3>Cookies Output</h3>
+            <pre id="cookies-output">Cookie results will display here.</pre>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Network Capture</h2>
+          <form id="network-form" class="stacked-form">
+            <fieldset data-connection-guard disabled>
+              <div class="action-row wrap">
+                <button type="button" id="start-network" class="primary">Start Capture</button>
+                <button type="button" id="stop-network" class="ghost">Stop</button>
+                <button type="button" id="get-network-log" class="ghost">Fetch Log</button>
+                <button type="button" id="clear-network-log" class="danger ghost">Clear Log</button>
+              </div>
+            </fieldset>
+          </form>
+          <div class="result-block">
+            <h3>Network Log</h3>
+            <pre id="network-output">Network entries will appear here.</pre>
+          </div>
+        </section>
+
+        <section class="card card--wide">
+          <div class="card-header">
+            <h2>Logs &amp; Events</h2>
+            <button type="button" id="clear-log" class="ghost">Clear</button>
+          </div>
+          <div id="log-stream" class="log-stream" aria-live="polite"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="../puppet/client.js"></script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
