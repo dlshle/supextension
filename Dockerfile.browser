@@ -1,5 +1,8 @@
 FROM seleniarm/standalone-chromium:latest
 
+# Make sure we're running as root for package installation
+USER root
+
 # Install noVNC and dependencies
 RUN apt-get update && apt-get install -y \
     novnc \
