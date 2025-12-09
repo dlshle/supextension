@@ -1,10 +1,11 @@
-FROM zenika/alpine-chrome:with-xvfb
+FROM seleniarm/standalone-chromium:latest
 
 # Install noVNC and dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     novnc \
     supervisor \
-    python3
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy the extension
 COPY ./dist /opt/extension
