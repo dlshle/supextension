@@ -11,29 +11,6 @@ PORT_VNC=5900
 
 echo "Starting deployment of Supextension Browser Extension with NoVNC..."
 
-# Function to cleanup old containers and images
-cleanup_old() {
-    echo "Cleaning up old containers and images..."
-
-    # Stop and remove old container if it exists
-    if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
-        echo "Stopping old container: $CONTAINER_NAME"
-        docker stop $CONTAINER_NAME || true
-        echo "Removing old container: $CONTAINER_NAME"
-        docker rm $CONTAINER_NAME || true
-    else
-        echo "No existing container found with name: $CONTAINER_NAME"
-    fi
-
-    # Remove old image if it exists
-    if [ "$(docker images -q $IMAGE_NAME 2>/dev/null)" ]; then
-        echo "Removing old image: $IMAGE_NAME"
-        docker rmi -f $IMAGE_NAME || true
-    else
-        echo "No existing image found with name: $IMAGE_NAME"
-    fi
-}
-
 # Function to build new image
 build_image() {
     echo "Checking if dist directory exists..."
@@ -42,8 +19,22 @@ build_image() {
         exit 1
     fi
     echo "Building new Docker image: $IMAGE_NAME"
-    docker build -f Dockerfile.browser -t $IMAGE_NAME . --no-cache
+    # Use host network to avoid DNS issues
+    docker build --network=host -f Dockerfile.browser -t $IMAGE_NAME .
     echo "Image built successfully"
+}
+
+# Function to cleanup old container
+cleanup_container() {
+    echo "Cleaning up old container..."
+    if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
+        echo "Stopping old container: $CONTAINER_NAME"
+        docker stop $CONTAINER_NAME || true
+        echo "Removing old container: $CONTAINER_NAME"
+        docker rm $CONTAINER_NAME || true
+    else
+        echo "No existing container found with name: $CONTAINER_NAME"
+    fi
 }
 
 # Function to run the container
@@ -80,7 +71,7 @@ check_status() {
     fi
 
     echo "Browser extension container is running!"
-    echo "NoVNC server available at: http://localhost:$PORT_NOVNC"
+    echo "NoVNC server available at: http://localhost:$PORT_NOVNC_EXTERNAL"
     echo "Traditional VNC server available at: localhost:$PORT_VNC"
     echo ""
     echo "To view logs: docker logs $CONTAINER_NAME"
@@ -89,8 +80,9 @@ check_status() {
 
 # Main deployment flow
 main() {
-    cleanup_old
+    # Build first, then cleanup, to preserve image cache if build fails or is not needed
     build_image
+    cleanup_container
     run_container
     check_status
 
