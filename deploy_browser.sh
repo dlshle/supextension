@@ -70,6 +70,15 @@ check_status() {
         exit 1
     fi
 
+    echo "Checking NoVNC accessibility..."
+    # Check if NoVNC is responding
+    if curl -s --head --request GET http://localhost:$PORT_NOVNC_EXTERNAL | grep "200 OK" > /dev/null; then
+        echo "NoVNC is reachable!"
+    else
+        echo "WARNING: NoVNC might not be reachable yet. Status code:"
+        curl -s --head --request GET http://localhost:$PORT_NOVNC_EXTERNAL | head -n 1
+    fi
+
     echo "Browser extension container is running!"
     echo "NoVNC server available at: http://localhost:$PORT_NOVNC_EXTERNAL"
     echo "Traditional VNC server available at: localhost:$PORT_VNC"
