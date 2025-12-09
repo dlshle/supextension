@@ -9,6 +9,7 @@ import type {
   NetworkLogEntry,
   StorageData,
   ExtensionMessage,
+  TabInfo,
 } from './types.js';
 
 export class BrowserController {
@@ -311,6 +312,15 @@ export class BrowserController {
   async clearNetworkLog(): Promise<ApiResponse<void>> {
     return this.sendMessage({
       type: 'CLEAR_NETWORK_LOG',
+    });
+  }
+
+  /**
+   * Get all tabs in the current window
+   */
+  async getAllTabs(): Promise<ApiResponse<TabInfo[]>> {
+    return this.sendMessage({
+      type: 'GET_ALL_TABS',
     });
   }
 }

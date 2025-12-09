@@ -272,6 +272,12 @@ class PuppetClient {
     return this.sendCommand('clearNetworkLog');
   }
 
+  // ==================== Tab APIs ====================
+
+  async getAllTabs() {
+    return this.sendCommand('getAllTabs');
+  }
+
   // ==================== Utility Methods ====================
 
   connected() {

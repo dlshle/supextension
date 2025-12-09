@@ -68,6 +68,8 @@
     fetchNetwork: document.getElementById('get-network-log'),
     clearNetwork: document.getElementById('clear-network-log'),
     networkOutput: document.getElementById('network-output'),
+    refreshTabs: document.getElementById('refresh-tabs'),
+    tabsListContainer: document.getElementById('tabs-list-container'),
   };
 
   const state = {
@@ -171,6 +173,7 @@
         onSuccess: () => setPreText(elements.networkOutput, null, 'Network log cleared.'),
       })
     );
+    elements.refreshTabs.addEventListener('click', handleRefreshTabs);
   }
 
   function getConnectionConfig() {
@@ -442,6 +445,67 @@
     runCommand('Delete cookie', () => state.client.deleteCookie(url, name), {
       onSuccess: () => setPreText(elements.cookiesOutput, `Deleted ${name}`, ''),
     });
+  }
+
+  function handleRefreshTabs() {
+    runCommand('Get all tabs', () => state.client.getAllTabs(), {
+      onSuccess: (response) => renderTabs(response.data),
+    });
+  }
+
+  function renderTabs(tabs) {
+    if (!tabs || tabs.length === 0) {
+      elements.tabsListContainer.innerHTML = '<div class="tab-item"><div class="tab-info"><div class="tab-title">No tabs found</div></div></div>';
+      return;
+    }
+
+    elements.tabsListContainer.innerHTML = '';
+
+    tabs.forEach(tab => {
+      const tabElement = document.createElement('div');
+      tabElement.className = `tab-item ${tab.active ? 'active' : ''}`;
+      tabElement.innerHTML = `
+        <div class="tab-info">
+          <div class="tab-icon">
+            ${tab.favIconUrl ? `<img src="${tab.favIconUrl}" width="12" height="12" style="width: 12px; height: 12px;" alt="" onerror="this.style.display='none'; this.parentElement.innerHTML='W'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center';">` : 'W'}
+          </div>
+          <div>
+            <div class="tab-title">${escapeHtml(tab.title || 'No Title')}</div>
+            <div class="tab-url">${escapeHtml(tab.url || '')}</div>
+          </div>
+        </div>
+      `;
+
+      // Add click handler to focus on the tab
+      tabElement.addEventListener('click', () => {
+        handleFocusTab(tab.id);
+      });
+
+      elements.tabsListContainer.appendChild(tabElement);
+    });
+  }
+
+  function handleFocusTab(tabId) {
+    if (!tabId) return;
+
+    // Set the tab ID in the input field for future operations
+    elements.tabIdInput.value = tabId.toString();
+    addLog(`Tab #${tabId} selected as target for operations`, 'info');
+
+    // Refresh the tab list to show the selected tab as the active one visually
+    runCommand('Get all tabs', () => state.client.getAllTabs(), {
+      onSuccess: (response) => renderTabs(response.data),
+    });
+  }
+
+  function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return unsafe
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   function toggleScreenshotQuality() {

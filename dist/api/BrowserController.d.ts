@@ -2,7 +2,7 @@
  * BrowserController - Main API for browser automation
  * This class provides all the methods to control the browser programmatically.
  */
-import type { ApiResponse, DOMContent, NetworkLogEntry, StorageData } from './types.js';
+import type { ApiResponse, DOMContent, NetworkLogEntry, StorageData, TabInfo } from './types.js';
 export declare class BrowserController {
     private static instance;
     private constructor();
@@ -116,6 +116,10 @@ export declare class BrowserController {
      * Clear the network log
      */
     clearNetworkLog(): Promise<ApiResponse<void>>;
+    /**
+     * Get all tabs in the current window
+     */
+    getAllTabs(): Promise<ApiResponse<TabInfo[]>>;
 }
 export declare const browserController: BrowserController;
 //# sourceMappingURL=BrowserController.d.ts.map

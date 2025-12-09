@@ -105,6 +105,9 @@ async function handleMessage(
         isCapturingNetwork = false;
         return { success: true };
 
+      case 'GET_ALL_TABS':
+        return await handleGetAllTabs();
+
       default:
         return { success: false, error: 'Unknown message type' };
     }
@@ -458,6 +461,27 @@ async function handleDeleteCookie(url: string, name: string): Promise<ApiRespons
   try {
     await chrome.cookies.remove({ url, name });
     return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+/**
+ * Get all tabs in current window
+ */
+async function handleGetAllTabs(): Promise<ApiResponse> {
+  try {
+    const tabs = await chrome.tabs.query({ currentWindow: true });
+    const tabInfos = tabs.map(tab => ({
+      id: tab.id!,
+      url: tab.url || '',
+      title: tab.title || '',
+      favIconUrl: tab.favIconUrl,
+      windowId: tab.windowId,
+      active: tab.active,
+      incognito: tab.incognito,
+    }));
+    return { success: true, data: tabInfos };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }

@@ -57,6 +57,10 @@ const elements = {
   scrollYInput: document.getElementById('scrollYInput') as HTMLInputElement,
   scrollBehaviorSelect: document.getElementById('scrollBehaviorSelect') as HTMLSelectElement,
   executeScrollBtn: document.getElementById('executeScrollBtn') as HTMLButtonElement,
+
+  // Tabs
+  refreshTabsBtn: document.getElementById('refreshTabsBtn') as HTMLButtonElement,
+  tabsContainer: document.getElementById('tabsContainer') as HTMLDivElement,
 };
 
 // State
@@ -73,6 +77,9 @@ function init(): void {
 
   // Start polling for stats since capturing is on by default
   pollNetworkStats();
+
+  // Load initial tab list
+  handleRefreshTabs();
 }
 
 /**
@@ -134,6 +141,9 @@ function setupEventListeners(): void {
   elements.scrollModal.addEventListener('click', (e) => {
     if (e.target === elements.scrollModal) closeScrollModal();
   });
+
+  // Tabs
+  elements.refreshTabsBtn.addEventListener('click', handleRefreshTabs);
 }
 
 /**
@@ -423,13 +433,97 @@ async function handleViewNetwork(): Promise<void> {
  */
 async function handleClearNetwork(): Promise<void> {
   const response = await browserController.clearNetworkLog();
-  
+
   if (response.success) {
     elements.requestCount.textContent = '0';
     showOutput('Network log cleared', 'success');
   } else {
     showOutput(`Failed to clear log: ${response.error}`, 'error');
   }
+}
+
+/**
+ * Handle refresh tabs
+ */
+async function handleRefreshTabs(): Promise<void> {
+  setLoading(true);
+  const response = await browserController.getAllTabs();
+  setLoading(false);
+
+  if (response.success && response.data) {
+    renderTabs(response.data);
+  } else {
+    showOutput(`Failed to get tabs: ${response.error}`, 'error');
+    elements.tabsContainer.innerHTML = '<div class="tab-item"><div class="tab-info"><div class="tab-title">Error loading tabs</div></div></div>';
+  }
+}
+
+/**
+ * Render tabs in the UI
+ */
+function renderTabs(tabs: any[]): void {
+  if (!tabs || tabs.length === 0) {
+    elements.tabsContainer.innerHTML = '<div class="tab-item"><div class="tab-info"><div class="tab-title">No tabs found</div></div></div>';
+    return;
+  }
+
+  elements.tabsContainer.innerHTML = '';
+
+  tabs.forEach(tab => {
+    const tabElement = document.createElement('div');
+    tabElement.className = `tab-item ${tab.active ? 'active' : ''}`;
+    tabElement.innerHTML = `
+      <div class="tab-info">
+        <div class="tab-icon">
+          ${tab.favIconUrl ? `<img src="${tab.favIconUrl}" width="12" height="12" style="width: 12px; height: 12px;" alt="" onerror="this.style.display='none'; this.parentElement.innerHTML='W'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center';">` : 'W'}
+        </div>
+        <div>
+          <div class="tab-title">${escapeHtml(tab.title)}</div>
+          <div class="tab-url">${escapeHtml(tab.url)}</div>
+        </div>
+      </div>
+    `;
+
+    // Add click handler to focus on the tab
+    tabElement.addEventListener('click', () => {
+      handleFocusTab(tab.id);
+    });
+
+    elements.tabsContainer.appendChild(tabElement);
+  });
+}
+
+/**
+ * Focus on a specific tab
+ */
+async function handleFocusTab(tabId: number): Promise<void> {
+  if (!tabId) return;
+
+  setLoading(true);
+  // We can't programmatically focus a tab from popup, so we just show a message
+  const currentTabsResponse = await browserController.getAllTabs();
+  if (currentTabsResponse.success && currentTabsResponse.data) {
+    const targetTab = currentTabsResponse.data.find(t => t.id === tabId);
+    if (targetTab) {
+      showOutput(`Selected tab: ${targetTab.title}\nURL: ${targetTab.url}`, 'info');
+      // Update the UI to show this is the selected tab
+      renderTabs(currentTabsResponse.data);
+    }
+  }
+  setLoading(false);
+}
+
+/**
+ * Simple HTML escaping function to prevent XSS
+ */
+function escapeHtml(unsafe: string): string {
+  if (!unsafe) return '';
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 /**

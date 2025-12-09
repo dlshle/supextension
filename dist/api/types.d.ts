@@ -1,7 +1,7 @@
 /**
  * Types for the Supextension API
  */
-export type MessageType = 'NAVIGATE' | 'NAVIGATE_BACK' | 'GET_DOM' | 'TAKE_SCREENSHOT' | 'GET_ALL_TEXT' | 'INJECT_SCRIPT' | 'GET_STORAGE' | 'SET_STORAGE' | 'GET_COOKIES' | 'SET_COOKIE' | 'DELETE_COOKIE' | 'GET_NETWORK_LOG' | 'CLEAR_NETWORK_LOG' | 'START_NETWORK_CAPTURE' | 'STOP_NETWORK_CAPTURE' | 'SCROLL';
+export type MessageType = 'NAVIGATE' | 'NAVIGATE_BACK' | 'GET_DOM' | 'TAKE_SCREENSHOT' | 'GET_ALL_TEXT' | 'INJECT_SCRIPT' | 'GET_STORAGE' | 'SET_STORAGE' | 'GET_COOKIES' | 'SET_COOKIE' | 'DELETE_COOKIE' | 'GET_NETWORK_LOG' | 'CLEAR_NETWORK_LOG' | 'START_NETWORK_CAPTURE' | 'STOP_NETWORK_CAPTURE' | 'SCROLL' | 'GET_ALL_TABS';
 export interface BaseMessage {
     type: MessageType;
     tabId?: number;
@@ -74,7 +74,7 @@ export interface StartNetworkCaptureMessage extends BaseMessage {
 export interface StopNetworkCaptureMessage extends BaseMessage {
     type: 'STOP_NETWORK_CAPTURE';
 }
-export type ExtensionMessage = NavigateMessage | NavigateBackMessage | GetDOMMessage | TakeScreenshotMessage | GetAllTextMessage | InjectScriptMessage | GetStorageMessage | SetStorageMessage | GetCookiesMessage | SetCookieMessage | DeleteCookieMessage | GetNetworkLogMessage | ClearNetworkLogMessage | StartNetworkCaptureMessage | StopNetworkCaptureMessage | ScrollMessage;
+export type ExtensionMessage = NavigateMessage | NavigateBackMessage | GetDOMMessage | TakeScreenshotMessage | GetAllTextMessage | InjectScriptMessage | GetStorageMessage | SetStorageMessage | GetCookiesMessage | SetCookieMessage | DeleteCookieMessage | GetNetworkLogMessage | ClearNetworkLogMessage | StartNetworkCaptureMessage | StopNetworkCaptureMessage | ScrollMessage | GetAllTabsMessage;
 export interface ApiResponse<T = unknown> {
     success: boolean;
     data?: T;
@@ -106,5 +106,17 @@ export interface DOMContent {
 }
 export interface StorageData {
     [key: string]: unknown;
+}
+export interface TabInfo {
+    id: number;
+    url: string;
+    title: string;
+    favIconUrl?: string;
+    windowId: number;
+    active: boolean;
+    incognito: boolean;
+}
+export interface GetAllTabsMessage extends BaseMessage {
+    type: 'GET_ALL_TABS';
 }
 //# sourceMappingURL=types.d.ts.map

@@ -254,6 +254,14 @@ export class BrowserController {
             type: 'CLEAR_NETWORK_LOG',
         });
     }
+    /**
+     * Get all tabs in the current window
+     */
+    async getAllTabs() {
+        return this.sendMessage({
+            type: 'GET_ALL_TABS',
+        });
+    }
 }
 // Export singleton instance
 export const browserController = BrowserController.getInstance();

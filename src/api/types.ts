@@ -19,7 +19,8 @@ export type MessageType =
   | 'CLEAR_NETWORK_LOG'
   | 'START_NETWORK_CAPTURE'
   | 'STOP_NETWORK_CAPTURE'
-  | 'SCROLL';
+  | 'SCROLL'
+  | 'GET_ALL_TABS';
 
 export interface BaseMessage {
   type: MessageType;
@@ -126,7 +127,8 @@ export type ExtensionMessage =
   | ClearNetworkLogMessage
   | StartNetworkCaptureMessage
   | StopNetworkCaptureMessage
-  | ScrollMessage;
+  | ScrollMessage
+  | GetAllTabsMessage;
 
 // Response types
 export interface ApiResponse<T = unknown> {
@@ -167,5 +169,20 @@ export interface DOMContent {
 // Storage data
 export interface StorageData {
   [key: string]: unknown;
+}
+
+// Tab information
+export interface TabInfo {
+  id: number;
+  url: string;
+  title: string;
+  favIconUrl?: string;
+  windowId: number;
+  active: boolean;
+  incognito: boolean;
+}
+
+export interface GetAllTabsMessage extends BaseMessage {
+  type: 'GET_ALL_TABS';
 }
 
