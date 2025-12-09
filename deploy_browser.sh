@@ -5,6 +5,7 @@ set -e  # Exit immediately if a command exits with a non-zero status
 # Configuration
 IMAGE_NAME="supextension-browser"
 CONTAINER_NAME="supextension-browser-container"
+PORT_NOVNC_EXTERNAL=8081
 PORT_NOVNC=8080
 PORT_VNC=5900
 
@@ -59,7 +60,7 @@ run_container() {
     docker run -d \
         --name $CONTAINER_NAME \
         -v $(pwd)/dist:/opt/extension \
-        -p $PORT_NOVNC:$PORT_NOVNC \
+        -p $PORT_NOVNC_EXTERNAL:$PORT_NOVNC \
         -p $PORT_VNC:$PORT_VNC \
         $IMAGE_NAME
 
