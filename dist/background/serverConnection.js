@@ -119,6 +119,7 @@ function toExtensionMessage(method, params) {
         stopNetworkCapture: 'STOP_NETWORK_CAPTURE',
         getNetworkLog: 'GET_NETWORK_LOG',
         clearNetworkLog: 'CLEAR_NETWORK_LOG',
+        getAllTabs: 'GET_ALL_TABS',
     };
     const type = methodMap[method];
     if (!type) {
