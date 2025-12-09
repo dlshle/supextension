@@ -1,14 +1,27 @@
-FROM zenika/alpine-chrome:with-xfvb
+FROM zenika/alpine-chrome:with-xvfb
+
+# Install noVNC and dependencies
+RUN apk add --no-cache \
+    novnc \
+    supervisor \
+    python3
 
 # Copy the extension
 COPY ./dist /opt/extension
 
-# Copy a startup script to properly launch Chrome with extension
-RUN echo '#!/bin/sh\n\
-export DISPLAY=:99\n\
-Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &\n\
-sleep 3\n\
-exec google-chrome \\\n\
+# Create supervisor configuration
+RUN echo '[supervisord]\n\
+nodaemon=true\n\
+user=root\n\
+\n\
+[program:xvfb]\n\
+command=/usr/bin/Xvfb :99 -screen 0 1024x768x24\n\
+priority=1\n\
+autorestart=true\n\
+\n\
+[program:chrome]\n\
+command=/usr/bin/google-chrome \\\n\
+  --display=:99 \\\n\
   --disable-extensions-except=/opt/extension \\\n\
   --load-extension=/opt/extension \\\n\
   --no-sandbox \\\n\
@@ -23,11 +36,17 @@ exec google-chrome \\\n\
   --disable-features=TranslateUI \\\n\
   --disable-background-timer-throttling \\\n\
   --disable-renderer-backgrounding \\\n\
-  --disable-backgrounding-occluded-windows' > /start.sh && \
-  chmod +x /start.sh
+  --disable-backgrounding-occluded-windows\n\
+priority=2\n\
+autorestart=true\n\
+\n\
+[program:novnc]\n\
+command=/usr/share/novnc/utils/launch.sh --listen 8080 --vnc localhost:5900\n\
+priority=3\n\
+autorestart=true' > /etc/supervisor/conf.d/supervisord.conf
 
-# Expose VNC port
-EXPOSE 5900
+# Expose ports for NoVNC (8080) and VNC (5900)
+EXPOSE 8080 5900
 
-# Set the default command to run our startup script
-CMD ["/start.sh"]
+# Set the default command to run supervisord
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

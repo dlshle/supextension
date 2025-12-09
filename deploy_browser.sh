@@ -5,9 +5,10 @@ set -e  # Exit immediately if a command exits with a non-zero status
 # Configuration
 IMAGE_NAME="supextension-browser"
 CONTAINER_NAME="supextension-browser-container"
+PORT_NOVNC=8080
 PORT_VNC=5900
 
-echo "Starting deployment of Supextension Browser Extension..."
+echo "Starting deployment of Supextension Browser Extension with NoVNC..."
 
 # Function to cleanup old containers and images
 cleanup_old() {
@@ -54,10 +55,11 @@ run_container() {
         exit 1
     fi
 
-    # Run the container with VNC enabled and mount the extension directory
+    # Run the container with NoVNC enabled and mount the extension directory
     docker run -d \
         --name $CONTAINER_NAME \
         -v $(pwd)/dist:/opt/extension \
+        -p $PORT_NOVNC:$PORT_NOVNC \
         -p $PORT_VNC:$PORT_VNC \
         $IMAGE_NAME
 
@@ -67,7 +69,7 @@ run_container() {
 # Function to check if container is running
 check_status() {
     echo "Waiting for container to be ready..."
-    sleep 5
+    sleep 10
 
     # Check if container is running
     if [ ! "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
@@ -77,7 +79,8 @@ check_status() {
     fi
 
     echo "Browser extension container is running!"
-    echo "VNC server available at: localhost:$PORT_VNC"
+    echo "NoVNC server available at: http://localhost:$PORT_NOVNC"
+    echo "Traditional VNC server available at: localhost:$PORT_VNC"
     echo ""
     echo "To view logs: docker logs $CONTAINER_NAME"
     echo "To stop: docker stop $CONTAINER_NAME"
