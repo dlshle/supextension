@@ -3,18 +3,47 @@ FROM seleniarm/standalone-chromium:latest
 # Make sure we're running as root for package installation
 USER root
 
-# Install noVNC and dependencies
+# Update package lists and install dependencies
 RUN apt-get update && apt-get install -y \
-    novnc \
     supervisor \
+    xvfb \
     python3 \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
+
+# Install websockify for noVNC (needed for launch.sh)
+RUN pip3 install websockify
+
+# Find and set up noVNC
+RUN find / -name "novnc" -type d 2>/dev/null | head -n 1 > /tmp/novnc_path.txt && \
+    NOVNC_PATH=$(cat /tmp/novnc_path.txt) && \
+    if [ -z "$NOVNC_PATH" ]; then \
+        # If novnc not found, install it manually
+        cd /opt && git clone https://github.com/novnc/noVNC.git && \
+        NOVNC_PATH="/opt/noVNC" ; \
+    fi && \
+    echo "noVNC path: $NOVNC_PATH" && \
+    ln -s "$NOVNC_PATH" /usr/share/novnc && \
+    chmod +x "$NOVNC_PATH/utils/launch.sh"
+
+# Find Chrome executable path
+RUN find / -name "google-chrome*" -type f -executable 2>/dev/null | head -n 1 > /tmp/chrome_path.txt && \
+    CHROME_PATH=$(cat /tmp/chrome_path.txt) && \
+    if [ -z "$CHROME_PATH" ]; then \
+        # Try chromium-browser as fallback
+        find / -name "chromium*" -type f -executable 2>/dev/null | head -n 1 > /tmp/chrome_path.txt && \
+        CHROME_PATH=$(cat /tmp/chrome_path.txt) ; \
+    fi && \
+    echo "Chrome path: $CHROME_PATH" && \
+    ln -s "$CHROME_PATH" /usr/bin/google-chrome
 
 # Copy the extension
 COPY ./dist /opt/extension
 
-# Create supervisor configuration
-RUN echo '[supervisord]\n\
+# Create supervisor configuration with correct paths
+RUN NOVNC_PATH=$(cat /tmp/novnc_path.txt) && \
+    CHROME_PATH=$(cat /tmp/chrome_path.txt) && \
+    echo '[supervisord]\n\
 nodaemon=true\n\
 user=root\n\
 \n\
@@ -24,7 +53,7 @@ priority=1\n\
 autorestart=true\n\
 \n\
 [program:chrome]\n\
-command=/usr/bin/google-chrome \\\n\
+command='"$CHROME_PATH"' \\\n\
   --display=:99 \\\n\
   --disable-extensions-except=/opt/extension \\\n\
   --load-extension=/opt/extension \\\n\
@@ -45,7 +74,7 @@ priority=2\n\
 autorestart=true\n\
 \n\
 [program:novnc]\n\
-command=/usr/share/novnc/utils/launch.sh --listen 8080 --vnc localhost:5900\n\
+command='"$NOVNC_PATH"'/utils/launch.sh --listen 8080 --vnc localhost:5900\n\
 priority=3\n\
 autorestart=true' > /etc/supervisor/conf.d/supervisord.conf
 
