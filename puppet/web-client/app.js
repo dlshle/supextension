@@ -448,8 +448,28 @@
   }
 
   function handleRefreshTabs() {
+    console.log('[Puppet Console] handleRefreshTabs called');
+    if (!state.client) {
+      console.error('[Puppet Console] No client available');
+      addLog('No client available', 'error');
+      return;
+    }
+    console.log('[Puppet Console] Client exists, connected:', state.client.connected());
+    console.log('[Puppet Console] Client has getAllTabs method:', typeof state.client.getAllTabs);
+
     runCommand('Get all tabs', () => state.client.getAllTabs(), {
-      onSuccess: (response) => renderTabs(response.data),
+      onSuccess: (response) => {
+        console.log('[Puppet Console] getAllTabs response:', response);
+        renderTabs(response.data);
+      },
+      onError: (response) => {
+        console.error('[Puppet Console] getAllTabs error:', response);
+        addLog('Failed to get tabs: ' + (response?.error || 'Unknown error'), 'error');
+      },
+      onException: (error) => {
+        console.error('[Puppet Console] getAllTabs exception:', error);
+        addLog('Exception getting tabs: ' + error?.message, 'error');
+      }
     });
   }
 
