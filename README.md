@@ -32,6 +32,7 @@ A powerful Chrome extension for browser automation with a clean API layer. Contr
 │  • getDOM()          • getStorage() / setStorage()   │
 │  • getAllText()      • getCookies() / setCookie()    │
 │  • startNetworkCapture() / getNetworkLog()           │
+│  • getAllTabs()      • other methods...              │
 └─────────────────────────────────────────────────────┘
           │
           ▼
@@ -46,6 +47,44 @@ A powerful Chrome extension for browser automation with a clean API layer. Contr
 │        (Runs in webpage context for DOM access)      │
 └─────────────────────────────────────────────────────┘
 ```
+
+## Adding New Features
+
+To add a new browser automation feature across the entire architecture:
+
+1. **Define API Types**: Add the new message type and interface in `src/api/types.ts`
+   - Add to the `MessageType` union type
+   - Create a new message interface (e.g., `NewFeatureMessage`)
+   - Include in the `ExtensionMessage` union type
+   - Define any response data interfaces if needed
+
+2. **Implement Background Handler**: Add functionality in `src/background/background.ts`
+   - Add case for the new message type in the message handler switch
+   - Create a handler function (e.g., `handleNewFeature()`)
+   - Implement the actual browser API interactions
+
+3. **Update Server Communication**: Modify `src/background/serverConnection.ts` if needed
+   - Add mapping to the `methodMap` for puppet server communication
+   - Map the client method name to the internal message type
+
+4. **Add API Method**: Extend `src/api/BrowserController.ts`
+   - Add a new method that sends the appropriate message
+   - Include proper typing and documentation
+
+5. **Update Popup UI**: Modify files in `src/popup/`
+   - Add HTML elements in `popup.html`
+   - Add CSS styling in `popup.css`
+   - Add JavaScript logic in `popup.ts`
+
+6. **Update Puppet Client**: Modify `puppet/client.js`
+   - Add a new method that calls `sendCommand()` with the appropriate method name
+
+7. **Update Web Client**: Modify files in `puppet/web-client/`
+   - Add HTML elements in `index.html`
+   - Add CSS styling in `styles.css`
+   - Add JavaScript logic in `app.js`
+
+8. **Build and Test**: Run `npm run build` to compile and test the new functionality
 
 ## Installation
 
