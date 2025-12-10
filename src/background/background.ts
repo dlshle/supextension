@@ -119,6 +119,9 @@ async function handleMessage(
       case 'GET_ALL_TABS':
         return await handleGetAllTabs();
 
+      case 'SCROLL':
+        return await handleScroll(message.tabId, message.x, message.y, message.behavior);
+
       default:
         return { success: false, error: 'Unknown message type' };
     }
@@ -493,6 +496,85 @@ async function handleGetAllTabs(): Promise<ApiResponse> {
       incognito: tab.incognito,
     }));
     return { success: true, data: tabInfos };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+/**
+ * Scroll the page
+ */
+async function handleScroll(
+  tabId?: number,
+  x?: number | null,
+  y?: number | null,
+  behavior: 'auto' | 'smooth' = 'smooth'
+): Promise<ApiResponse> {
+  try {
+    const targetTabId = tabId ?? (await getActiveTabId());
+    if (!targetTabId) {
+      return { success: false, error: 'No active tab found' };
+   }
+
+    // Prepare arguments - use null for undefined to ensure proper serialization
+    const scrollX = x !== undefined && x !== null ? x : null;
+    const scrollY = y !== undefined && y !== null ? y : null;
+
+    await chrome.scripting.executeScript({
+      target: { tabId: targetTabId },
+      func: (scrollX: number | null, scrollY: number | null, scrollBehavior: 'auto' | 'smooth') => {
+        try {
+          // Calculate maximum scroll position
+          const getMaxScrollY = () => {
+            const body = document.body;
+            const html = document.documentElement;
+            const maxScroll = Math.max(
+             body.scrollHeight || 0,
+              body.offsetHeight || 0,
+              html.clientHeight || 0,
+              html.scrollHeight || 0,
+              html.offsetHeight || 0
+            );
+            return Math.max(0, maxScroll - (window.innerHeight || 0));
+          };
+
+          // Handle scroll based on provided coordinates
+          if (scrollX !== null && scrollY !== null) {
+            // Both coordinates provided
+            window.scrollTo({
+              left: scrollX,
+              top: scrollY,
+              behavior: scrollBehavior,
+            });
+          } else if (scrollY !== null) {
+            // Only Y coordinate provided
+            window.scrollTo({
+              top: scrollY,
+              behavior: scrollBehavior,
+            });
+          } else if (scrollX !== null) {
+            // Only X coordinate provided
+            window.scrollTo({
+              left: scrollX,
+              behavior: scrollBehavior,
+            });
+          } else {
+            // No coordinates provided - scroll to bottom
+            const maxY = getMaxScrollY();
+            window.scrollTo({
+              top: maxY,
+              behavior: scrollBehavior,
+            });
+          }
+        } catch (err) {
+          console.error('Scroll error:', err);
+          throw err;
+        }
+      },
+      args: [scrollX, scrollY, behavior],
+    });
+
+    return { success: true };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }
