@@ -1,34 +1,18 @@
 FROM ubuntu:22.04
 
-# Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Update and install dependencies
 RUN apt-get update && apt-get install -y \
-    curl \
-    wget \
-    gnupg \
-    unzip \
-    git \
-    python3 \
-    python3-pip \
-    python3-venv \
-    xvfb \
-    x11vnc \
-    fluxbox \
-    supervisor \
-    ca-certificates \
-    net-tools \
+    curl wget gnupg unzip git python3 python3-pip python3-venv \
+    xvfb x11vnc fluxbox supervisor ca-certificates net-tools \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Google Chrome
 RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-archive-keyring.gpg \
-    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-archive-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-archive-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
     && apt-get install -y google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
-# Install noVNC and websockify
 ADD https://github.com/novnc/noVNC/archive/refs/tags/v1.4.0.tar.gz /tmp/novnc.tar.gz
 ADD https://github.com/novnc/websockify/archive/refs/tags/v0.11.0.tar.gz /tmp/websockify.tar.gz
 RUN mkdir -p /opt/noVNC/utils/websockify \
@@ -37,46 +21,50 @@ RUN mkdir -p /opt/noVNC/utils/websockify \
     && rm /tmp/novnc.tar.gz /tmp/websockify.tar.gz \
     && ln -s /opt/noVNC/vnc.html /opt/noVNC/index.html
 
-# Copy extension
+RUN useradd -m chromeuser
+
 COPY ./dist /opt/extension
 
-# Create supervisor configuration
-RUN echo '[supervisord]\n\
-nodaemon=true\n\
-user=root\n\
-\n\
-[program:xvfb]\n\
-command=/usr/bin/Xvfb :99 -screen 0 1280x960x24\n\
-priority=1\n\
-autorestart=true\n\
-\n\
-[program:fluxbox]\n\
-command=/usr/bin/fluxbox -display :99\n\
-priority=2\n\
-autorestart=true\n\
-environment=DISPLAY=":99"\n\
-\n\
-[program:x11vnc]\n\
-command=/usr/bin/x11vnc -display :99 -forever -shared -nopw -listen 0.0.0.0 -xkb\n\
-priority=3\n\
-autorestart=true\n\
-\n\
-[program:novnc]\n\
-command=/opt/noVNC/utils/novnc_proxy --vnc localhost:5900 --listen 8080\n\
-priority=4\n\
-autorestart=true\n\
-\n\
-[program:chrome]\n\
-command=/usr/bin/google-chrome-stable --no-sandbox --disable-gpu --disable-dev-shm-usage --start-maximized --display=:99 --load-extension=/opt/extension --disable-extensions-except=/opt/extension --no-first-run --no-default-browser-check --user-data-dir=/tmp/chrome-data\n\
-priority=5\n\
-autorestart=true\n\
-environment=DISPLAY=":99"\n\
-' > /etc/supervisor/conf.d/supervisord.conf
+RUN mkdir -p /home/chromeuser/chrome-data && \
+    chown -R chromeuser:chromeuser /home/chromeuser/chrome-data && \
+    chown -R chromeuser:chromeuser /opt/extension
 
-# Expose ports
+RUN cat > /etc/supervisor/conf.d/supervisord.conf <<EOF
+[supervisord]
+nodaemon=true
+user=root
+
+[program:xvfb]
+command=/usr/bin/Xvfb :99 -screen 0 1280x960x24
+priority=1
+autorestart=true
+
+[program:fluxbox]
+command=/usr/bin/fluxbox -display :99
+priority=2
+autorestart=true
+environment=DISPLAY=":99"
+
+[program:x11vnc]
+command=/usr/bin/x11vnc -display :99 -forever -shared -nopw -listen 0.0.0.0 -xkb
+priority=3
+autorestart=true
+
+[program:novnc]
+command=/opt/noVNC/utils/novnc_proxy --vnc localhost:5900 --listen 8080
+priority=4
+autorestart=true
+
+[program:chrome]
+command=/usr/bin/google-chrome-stable --no-sandbox --disable-gpu --disable-dev-shm-usage --start-maximized --display=:99 --load-extension=/opt/extension --disable-extensions-except=/opt/extension --no-first-run --no-default-browser-check --user-data-dir=/home/chromeuser/chrome-data
+priority=5
+autorestart=true
+user=chromeuser
+environment=DISPLAY=":99"
+EOF
+
 EXPOSE 8080 5900
 
-# Set environment variables
 ENV DISPLAY=:99
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
