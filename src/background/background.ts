@@ -43,13 +43,10 @@ function initialize(): void {
   });
 
   setInterval(() => {
-    handleGetAllTabs().then((tabs) => {
-      console.log('[Supextension] Fetching tabs...', JSON.stringify(tabs));
-    });
-    fetch('https://wwww.bing.com').then(() => {
+    fetch('https://cdn2.downdetector.com/87717401fbead92/images/icon-hamburger.svg').then(() => {
       console.log('health check done');
     })
-  }, 5000);
+  }, 10000);
 }
 
 /**
