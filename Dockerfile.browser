@@ -8,12 +8,8 @@ RUN apt-get update && apt-get install -y \
     snapd \
     && rm -rf /var/lib/apt/lists/*
 
-# Initialize snapd service
-RUN systemctl enable snapd && \
-    systemctl start snapd && \
-    sleep 10 && \
-    snap wait system.seed && \
-    snap install core
+# Initialize snapd without systemd
+RUN snap wait system.seed 2>/dev/null || true
 
 # Handle both AMD64 (Google Chrome) and ARM (Chromium via snap) architectures
 COPY linux_signing_key.pub /tmp/linux_signing_key.pub
@@ -21,7 +17,8 @@ RUN cat /tmp/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google
     && echo "deb [signed-by=/usr/share/keyrings/google-chrome-archive-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
     && (apt-get install -y google-chrome-stable || \
-        (apt-get install -y chromium-browser&& snap alias chromium chromium-browser)) \
+        apt-get install -y chromium-browser || \
+        (snap install chromium && snap alias chromium chromium-browser)) \
     && rm -rf /var/lib/apt/lists/* \
     && rm /tmp/linux_signing_key.pub
 
