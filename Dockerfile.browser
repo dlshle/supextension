@@ -7,12 +7,12 @@ RUN apt-get update && apt-get install -y \
     xvfb x11vnc fluxbox supervisor ca-certificates net-tools \
     && rm -rf /var/lib/apt/lists/*
 
-# Using local linux_signing_key.pub file instead of downloading with wget
+# Handle both AMD64 (Google Chrome) and ARM (Chromium) architectures
 COPY linux_signing_key.pub /tmp/linux_signing_key.pub
 RUN cat /tmp/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-archive-keyring.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/google-chrome-archive-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
-    && apt-get install -y google-chrome-stable \
+    && (apt-get install -y google-chrome-stable || apt-get install -y chromium-browser) \
     && rm -rf /var/lib/apt/lists/* \
     && rm /tmp/linux_signing_key.pub
 
