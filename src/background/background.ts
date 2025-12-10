@@ -43,9 +43,14 @@ function initialize(): void {
   });
 
   setInterval(() => {
+    handleGetAllTabs().then(() => {
+      console.log('keep alive');
+    });
+    /*
     fetch('https://cdn2.downdetector.com/87717401fbead92/images/icon-hamburger.svg').then(() => {
       console.log('health check done');
     })
+    */
   }, 10000);
 }
 
