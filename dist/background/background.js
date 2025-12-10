@@ -26,13 +26,15 @@ function initialize() {
         connectToServer((message) => handleMessage(message, undefined), items.puppetServerUrl);
     });
     setInterval(() => {
-        handleGetAllTabs().then((tabs) => {
-            console.log('[Supextension] Fetching tabs...', JSON.stringify(tabs));
+        handleGetAllTabs().then(() => {
+            console.log('keep alive');
         });
-        fetch('https://wwww.bing.com').then(() => {
-            console.log('health check done');
-        });
-    }, 5000);
+        /*
+        fetch('https://cdn2.downdetector.com/87717401fbead92/images/icon-hamburger.svg').then(() => {
+          console.log('health check done');
+        })
+        */
+    }, 10000);
 }
 /**
  * Handle incoming messages from popup or content scripts
