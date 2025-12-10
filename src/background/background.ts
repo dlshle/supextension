@@ -41,6 +41,16 @@ function initialize(): void {
       items.puppetServerUrl
     );
   });
+
+  chrome.runtime.onInstalled.addListener(() => {
+    chrome.alarms.create('keepAlive', { periodInMinutes: 0.5 });
+  });
+
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === 'keepAlive') {
+      document.dispatchEvent(new CustomEvent('keepAlive'));
+    }
+  });
 }
 
 /**

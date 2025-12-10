@@ -25,6 +25,14 @@ function initialize() {
     chrome.storage.local.get({ puppetServerUrl: 'ws://39.105.177.200:9222' }, (items) => {
         connectToServer((message) => handleMessage(message, undefined), items.puppetServerUrl);
     });
+    chrome.runtime.onInstalled.addListener(() => {
+        chrome.alarms.create('keepAlive', { periodInMinutes: 0.5 });
+    });
+    chrome.alarms.onAlarm.addListener((alarm) => {
+        if (alarm.name === 'keepAlive') {
+            document.dispatchEvent(new CustomEvent('keepAlive'));
+        }
+    });
 }
 /**
  * Handle incoming messages from popup or content scripts
