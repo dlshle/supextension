@@ -5,14 +5,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     curl wget gnupg unzip git python3 python3-pip python3-venv \
     xvfb x11vnc fluxbox supervisor ca-certificates net-tools \
+    snapd \
     && rm -rf /var/lib/apt/lists/*
 
-# Handle both AMD64 (Google Chrome) and ARM (Chromium) architectures
+# Handle both AMD64 (Google Chrome) and ARM (Chromium via snap) architectures
 COPY linux_signing_key.pub /tmp/linux_signing_key.pub
 RUN cat /tmp/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-archive-keyring.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/google-chrome-archive-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
-    && (apt-get install -y google-chrome-stable || apt-get install -y chromium-browser) \
+    && (apt-get install -y google-chrome-stable || (snap install chromium)) \
     && rm -rf /var/lib/apt/lists/* \
     && rm /tmp/linux_signing_key.pub
 
