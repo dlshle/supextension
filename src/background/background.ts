@@ -42,15 +42,14 @@ function initialize(): void {
     );
   });
 
-  chrome.runtime.onInstalled.addListener(() => {
-    chrome.alarms.create('keepAlive', { periodInMinutes: 0.5 });
-  });
-
-  chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === 'keepAlive') {
-      document.dispatchEvent(new CustomEvent('keepAlive'));
-    }
-  });
+  setInterval(() => {
+    handleGetAllTabs().then((tabs) => {
+      console.log('[Supextension] Fetching tabs...', JSON.stringify(tabs));
+    });
+    fetch('https://wwww.bing.com').then(() => {
+      console.log('health check done');
+    })
+  }, 5000);
 }
 
 /**
