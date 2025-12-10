@@ -1,83 +1,63 @@
-FROM seleniarm/standalone-chromium:latest
+FROM ubuntu:22.04
 
-# Make sure we're running as root for package installation
-USER root
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Update package lists and install dependencies
 RUN apt-get update && apt-get install -y \
-    supervisor \
-    xvfb \
-    python3 \
-    python3-pip \
-    websockify \
+    curl wget gnupg unzip git python3 python3-pip python3-venv \
+    xvfb x11vnc fluxbox supervisor ca-certificates net-tools \
     && rm -rf /var/lib/apt/lists/*
 
-# Find and set up noVNC
-RUN find / -name "novnc" -type d 2>/dev/null | head -n 1 > /tmp/novnc_path.txt && \
-    NOVNC_PATH=$(cat /tmp/novnc_path.txt) && \
-    if [ -z "$NOVNC_PATH" ]; then \
-        # If novnc not found, install it manually
-        cd /opt && git clone https://github.com/novnc/noVNC.git && \
-        NOVNC_PATH="/opt/noVNC" ; \
-    fi && \
-    echo "noVNC path: $NOVNC_PATH" && \
-    ln -s "$NOVNC_PATH" /usr/share/novnc && \
-    chmod +x "$NOVNC_PATH/utils/launch.sh"
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-archive-keyring.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-archive-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable \
+    && rm -rf /var/lib/apt/lists/*
 
-# Find Chrome executable path
-RUN find / -name "google-chrome*" -type f -executable 2>/dev/null | head -n 1 > /tmp/chrome_path.txt && \
-    CHROME_PATH=$(cat /tmp/chrome_path.txt) && \
-    if [ -z "$CHROME_PATH" ]; then \
-        # Try chromium-browser as fallback
-        find / -name "chromium*" -type f -executable 2>/dev/null | head -n 1 > /tmp/chrome_path.txt && \
-        CHROME_PATH=$(cat /tmp/chrome_path.txt) ; \
-    fi && \
-    echo "Chrome path: $CHROME_PATH" && \
-    ln -s "$CHROME_PATH" /usr/bin/google-chrome
+ADD https://github.com/novnc/noVNC/archive/refs/tags/v1.4.0.tar.gz /tmp/novnc.tar.gz
+ADD https://github.com/novnc/websockify/archive/refs/tags/v0.11.0.tar.gz /tmp/websockify.tar.gz
+RUN mkdir -p /opt/noVNC/utils/websockify \
+    && tar xzf /tmp/novnc.tar.gz --strip-components=1 -C /opt/noVNC \
+    && tar xzf /tmp/websockify.tar.gz --strip-components=1 -C /opt/noVNC/utils/websockify \
+    && rm /tmp/novnc.tar.gz /tmp/websockify.tar.gz \
+    && ln -s /opt/noVNC/vnc.html /opt/noVNC/index.html
 
-# Copy the extension
+RUN useradd -m chromeuser
+
 COPY ./dist /opt/extension
 
-# Create supervisor configuration with correct paths
-RUN NOVNC_PATH=$(cat /tmp/novnc_path.txt) && \
-    CHROME_PATH=$(cat /tmp/chrome_path.txt) && \
-    echo '[supervisord]\n\
-nodaemon=true\n\
-user=root\n\
-\n\
-[program:xvfb]\n\
-command=/usr/bin/Xvfb :99 -screen 0 1024x768x24\n\
-priority=1\n\
-autorestart=true\n\
-\n\
-[program:chrome]\n\
-command='"$CHROME_PATH"' \\\n\
-  --display=:99 \\\n\
-  --disable-extensions-except=/opt/extension \\\n\
-  --load-extension=/opt/extension \\\n\
-  --no-sandbox \\\n\
-  --disable-dev-shm-usage \\\n\
-  --disable-gpu \\\n\
-  --disable-web-security \\\n\
-  --disable-extensions \\\n\
-  --disable-plugins \\\n\
-  --no-first-run \\\n\
-  --no-default-browser-check \\\n\
-  --user-data-dir=/tmp/chrome \\\n\
-  --disable-features=TranslateUI \\\n\
-  --disable-background-timer-throttling \\\n\
-  --disable-renderer-backgrounding \\\n\
-  --disable-backgrounding-occluded-windows\n\
-priority=2\n\
-autorestart=true\n\
-\n\
-[program:novnc]\n\
-command='"$NOVNC_PATH"'/utils/launch.sh --listen 8080 --vnc localhost:5900\n\
-priority=3\n\
-autorestart=true' > /etc/supervisor/conf.d/supervisord.conf
+RUN mkdir -p /home/chromeuser/chrome-data && \
+    chown -R chromeuser:chromeuser /home/chromeuser/chrome-data && \
+    chown -R chromeuser:chromeuser /opt/extension
 
-# Expose ports for NoVNC (8080) and VNC (5900)
+RUN cat > /etc/supervisor/conf.d/supervisord.conf <<EOF
+[supervisord]
+nodaemon=true
+user=root
+
+[program:xvfb]
+command=/usr/bin/Xvfb :99 -screen 0 1280x960x24
+priority=1
+autorestart=true
+
+[program:fluxbox]
+command=/usr/bin/fluxbox -display :99
+priority=2
+autorestart=true
+environment=DISPLAY=":99"
+
+[program:x11vnc]
+command=/usr/bin/x11vnc -display :99 -forever -shared -nopw -listen 0.0.0.0 -xkb
+priority=3
+autorestart=true
+
+[program:novnc]
+command=/opt/noVNC/utils/novnc_proxy --vnc localhost:5900 --listen 8080
+priority=4
+autorestart=true
+EOF
+
 EXPOSE 8080 5900
 
-# Set the default command to run supervisord
+ENV DISPLAY=:99
+
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
