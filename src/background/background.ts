@@ -181,9 +181,9 @@ async function handleGetDOM(tabId?: number, selector?: string): Promise<ApiRespo
       target: { tabId: targetTabId },
       func: (sel: string) => {
         if (sel && sel.trim()) {
-          const element = document.querySelector(sel);
+          const elements = Array.from(document.querySelectorAll(sel));
           return {
-            html: element?.outerHTML || '',
+            html: JSON.stringify(elements.map(ele => ele.outerHTML)),
             url: window.location.href,
             title: document.title,
           };

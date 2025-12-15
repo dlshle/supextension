@@ -135,9 +135,9 @@ async function handleGetDOM(tabId, selector) {
             target: { tabId: targetTabId },
             func: (sel) => {
                 if (sel && sel.trim()) {
-                    const element = document.querySelector(sel);
+                    const elements = Array.from(document.querySelectorAll(sel));
                     return {
-                        html: element?.outerHTML || '',
+                        html: JSON.stringify(elements.map(ele => ele.outerHTML)),
                         url: window.location.href,
                         title: document.title,
                     };

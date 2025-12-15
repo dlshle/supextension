@@ -1,149 +1,185 @@
-# Puppet Service
+# Puppet Remote Control System
 
-Remote coordinator that links the Supextension agent (Chrome extension) with remote clients.
+The Puppet system allows remote control of browsers through WebSocket connections. It consists of agents (browser extensions) that connect to a central server, and clients that can send commands to control those browsers.
 
 ## Components
 
-- **Agent** – the Chrome extension service worker that connects to the server
-- **Server** – Node.js WebSocket/HTTP process (`puppet/server.js`)
-- **Client** – JavaScript library (`puppet/client.js`) for remote control
-- **Web Console** – Browser-based UI (`./web-client/`) for graphical remote control
+1. **Server** (`server.js`) - Central coordination point that routes messages between clients and agents
+2. **Agent** (browser extension) - Connects to server and executes commands in the browser
+3. **Client** - Can be either:
+   - JavaScript client (`client.js`) - Works in Node.js or browser environments
+   - Python client (`client.py`) - Python implementation for WebSocket communication
 
-## Quick Start
+## Installation
 
-1. **Install dependencies**
-   ```bash
-   npm install
-   ```
+```bash
+npm install ws
+```
 
-2. **Build the extension**
-   ```bash
-   npm run build
-   ```
+For Python client:
+```bash
+pip install websockets
+```
 
-3. **Load the `dist/` folder in Chrome** via `chrome://extensions`
+## Usage
 
-4. **Start the coordinator server**
-   ```bash
-   npm run puppet:start
-   ```
+### JavaScript Client
 
-5. **Run the JavaScript example client**
-   ```bash
-   npm run puppet:example
-   ```
+```javascript
+const { PuppetClient } = require('./client');
 
-### Web Console (No-Code Remote Control)
+const client = new PuppetClient({
+  url: 'ws://localhost:9222',
+  apiKey: 'your-api-key-if-needed'
+});
 
-A full-featured front-end lives in `./web-client/` for teams that prefer a graphical interface.
+await client.connect();
 
-1. Make sure the puppet server (`npm run puppet:start`) and Chrome agent are connected
-2. Serve the static files from the repo root (for example: `python3 -m http.server 8080`)
-3. Visit `http://localhost:8080/puppet/web-client/`, enter your WebSocket URL/API key, and click **Connect**
-4. Use the cards to navigate, read DOM/text, run scripts, manage storage & cookies, and capture network traffic
+// Navigate to a URL
+await client.navigate('https://example.com');
 
-See `./web-client/README.md` for a full tour of the console and troubleshooting tips.
+// Take a screenshot
+const screenshot = await client.takeScreenshot();
 
-## Configuration
+// Get all text from page
+const text = await client.getAllText();
 
-### Server (`puppet/config.json`)
+await client.disconnect();
+```
+
+### Python Client
+
+```python
+from client import PuppetClient
+import asyncio
+
+async def main():
+    client = PuppetClient({
+        'url': 'ws://localhost:9222',
+        'apiKey': 'your-api-key-if-needed'
+    })
+    
+    await client.connect()
+    
+    # Navigate to a URL
+    await client.navigate('https://example.com')
+    
+    # Take a screenshot
+    screenshot = await client.take_screenshot()
+    
+    # Get all text from page
+    text = await client.get_all_text()
+    
+    await client.disconnect()
+
+asyncio.run(main())
+```
+
+## API Methods
+
+### Navigation
+- `navigate(url, tabId)` - Navigate to a URL
+- `navigateBack(tabId)` - Go back in browser history
+- `scroll(x, y, behavior, tabId)` - Scroll the page
+
+### DOM Operations
+- `getDOM(selector, tabId)` - Get DOM elements matching selector
+- `getAllText(tabId)` - Extract all text from page
+
+### Screenshots
+- `takeScreenshot(format, quality, tabId)` - Take a screenshot (png/jpeg)
+
+### Script Injection
+- `injectScript(code, timing, waitForSelector, tabId)` - Inject JavaScript
+
+### Storage
+- `getStorage(storageType, keys, tabId)` - Get localStorage/sessionStorage
+- `setStorage(storageType, data, tabId)` - Set localStorage/sessionStorage
+
+### Cookies
+- `getCookies(url, name)` - Get cookies
+- `setCookie(cookie)` - Set a cookie
+- `deleteCookie(url, name)` - Delete a cookie
+
+### Network Capture
+- `startNetworkCapture()` - Start capturing network requests
+- `stopNetworkCapture()` - Stop capturing network requests
+- `getNetworkLog()` - Get captured network requests
+- `clearNetworkLog()` - Clear network log
+
+### Tabs
+- `getAllTabs()` - Get all open tabs
+
+## Message Protocol
+
+All communication happens via JSON messages over WebSocket.
+
+### Client Identification
+When a client connects, it must identify itself:
 
 ```json
 {
-  "websocket": { "host": "0.0.0.0", "port": 9222 },
-  "http": { "enabled": true, "port": 9223 },
-  "security": {
-    "apiKey": null,
-    "agentSecret": null,
-    "allowedOrigins": ["*"]
-  },
-  "debug": false
+  "type": "identify",
+  "role": "client",
+  "apiKey": "optional-api-key",
+  "name": "client-name"
 }
 ```
 
-- `apiKey` – optional client authentication
-- `agentSecret` – optional agent authentication
-- `allowedOrigins` – restrict WebSocket/HTTP origins
+### Agent Identification
+When an agent connects, it must identify itself:
 
-Environment variables (`PUPPET_HOST`, `PUPPET_PORT`, `PUPPET_API_KEY`, etc.) override config values.
-
-### Agent (Extension) server URL
-
-The agent connects to `ws://localhost:9222` by default. Override via:
-
-```javascript
-chrome.storage.local.set({ puppetServerUrl: 'ws://YOUR_SERVER:9222' });
-```
-
-Add UI in the popup for a better UX.
-
-## Message Flow
-
-1. Client connects → sends `{ type: "identify", role: "client", apiKey }`
-2. Agent connects → sends `{ type: "identify", role: "agent", agentId, name, version }`
-3. Client sends `{ type: "command", method, params }`
-4. Server forwards to agent → agent executes Chrome commands
-5. Agent responds `{ type: "response", success, data }`
-6. Server forwards response back to originating client
-
-## Client Library (`puppet/client.js`)
-
-Usage:
-
-```javascript
-const { PuppetClient } = require('./puppet/client');
-
-async function main() {
-  const puppet = new PuppetClient({
-    url: 'ws://localhost:9222',
-    apiKey: null,
-  });
-
-  await puppet.connect();
-  await puppet.navigate('https://example.com');
-  const dom = await puppet.getDOM();
-  console.log(dom.data?.title);
-  puppet.disconnect();
+```json
+{
+  "type": "identify",
+  "role": "agent",
+  "secret": "agent-secret",
+  "name": "agent-name"
 }
-
-main().catch(console.error);
 ```
 
-Supports all BrowserController actions: navigation, DOM access, screenshots, script injection, storage, cookies, and network capture.
+### Commands
+Clients send commands to agents through the server:
 
-## Server API
+```json
+{
+  "type": "command",
+  "id": "req_123",
+  "method": "navigate",
+  "params": {
+    "url": "https://example.com"
+  }
+}
+```
 
-- **WebSocket** `ws://host:port`
-  - `identify` (client/agent)
-  - `command` (client → agent)
-  - `response` (agent → client)
-  - `event` (agent → clients)
-  - `agent-status` (server → clients)
+### Responses
+Agents respond to commands:
 
-- **HTTP** `GET /health` – returns `{ status, agentConnected, clients }`
+```json
+{
+  "type": "response",
+  "id": "req_123",
+  "success": true,
+  "data": {
+    "title": "Example Domain",
+    "url": "https://example.com"
+  }
+}
+```
 
-## Security Recommendations
+### Events
+Agents can send events to clients:
 
-1. Set both `apiKey` and `agentSecret` in production
-2. Use TLS termination (run server behind a reverse proxy that terminates HTTPS/WSS)
-3. Restrict `allowedOrigins`
-4. Run server on private network/VPN when possible
+```json
+{
+  "type": "event",
+  "event": "pageLoaded",
+  "data": {
+    "url": "https://example.com"
+  }
+}
+```
 
-## Deployment Tips
+## Examples
 
-- Use `pm2` or systemd to keep the server running
-- Containerize with Docker for easier shipping
-- Scale horizontally by running one agent per machine and configuring unique agent IDs
-
-## Troubleshooting
-
-- **Client receives "No agent connected"** – ensure the extension is loaded and connected
-- **Agent cannot connect** – verify server URL and firewall rules
-- **Command timeout** – check browser tab readiness and server/agent logs
-- **Unauthorized** – confirm `apiKey`/`agentSecret` values on both ends
-
-## Next Steps
-
-- Add UI in popup to configure server URL & authentication
-- Stream browser events back to clients (DOM changes, console logs, etc.)
-- Support multiple concurrent agents
+See the [examples](./examples/) directory for complete usage examples.
