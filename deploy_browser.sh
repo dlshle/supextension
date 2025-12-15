@@ -82,12 +82,34 @@ check_status() {
         curl -s --head --request GET http://localhost:$PORT_NOVNC_EXTERNAL | head -n 1
     fi
 
+    echo ""
+    echo "Checking Chrome CDP status..."
+    # Check if CDP is responding
+    sleep 5  # Give Chrome a bit more time to start
+    if curl -s http://localhost:$PORT_CDP_EXTERNAL/json > /dev/null 2>&1; then
+        echo "✓ Chrome CDP is accessible!"
+        echo "  CDP endpoint: http://localhost:$PORT_CDP_EXTERNAL/json"
+        echo "  Available targets:"
+        curl -s http://localhost:$PORT_CDP_EXTERNAL/json | head -c 200
+        echo ""
+    else
+        echo "⚠ WARNING: Chrome CDP might not be ready yet"
+        echo "  Try checking again in a few seconds: curl http://localhost:$PORT_CDP_EXTERNAL/json"
+    fi
+
+    echo ""
+    echo "Checking supervisor status..."
+    docker exec $CONTAINER_NAME supervisorctl status || echo "Could not check supervisor status"
+
+    echo ""
     echo "Browser extension container is running!"
     echo "NoVNC server available at: http://localhost:$PORT_NOVNC_EXTERNAL"
     echo "Traditional VNC server available at: localhost:$PORT_VNC"
     echo "Chrome DevTools Protocol (CDP) available at: http://localhost:$PORT_CDP_EXTERNAL"
     echo ""
-    echo "To view logs: docker logs $CONTAINER_NAME"
+    echo "To check if Chrome is running: docker exec $CONTAINER_NAME supervisorctl status chrome"
+    echo "To check Chrome logs: docker exec $CONTAINER_NAME tail -f /var/log/chrome.log"
+    echo "To view all logs: docker logs $CONTAINER_NAME"
     echo "To stop: docker stop $CONTAINER_NAME"
 }
 
