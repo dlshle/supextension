@@ -8,6 +8,8 @@ CONTAINER_NAME="supextension-browser-container"
 PORT_NOVNC_EXTERNAL=8081
 PORT_NOVNC=8080
 PORT_VNC=5900
+PORT_CDP_EXTERNAL=9222
+PORT_CDP=9222
 
 echo "Starting deployment of Supextension Browser Extension with NoVNC..."
 
@@ -53,6 +55,7 @@ run_container() {
         -v $(pwd)/dist:/opt/extension \
         -p $PORT_NOVNC_EXTERNAL:$PORT_NOVNC \
         -p $PORT_VNC:$PORT_VNC \
+        -p $PORT_CDP_EXTERNAL:$PORT_CDP \
         $IMAGE_NAME
 
     echo "Container started successfully"
@@ -82,6 +85,7 @@ check_status() {
     echo "Browser extension container is running!"
     echo "NoVNC server available at: http://localhost:$PORT_NOVNC_EXTERNAL"
     echo "Traditional VNC server available at: localhost:$PORT_VNC"
+    echo "Chrome DevTools Protocol (CDP) available at: http://localhost:$PORT_CDP_EXTERNAL"
     echo ""
     echo "To view logs: docker logs $CONTAINER_NAME"
     echo "To stop: docker stop $CONTAINER_NAME"

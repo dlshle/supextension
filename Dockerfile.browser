@@ -54,9 +54,16 @@ autorestart=true
 command=/opt/noVNC/utils/novnc_proxy --vnc localhost:5900 --listen 8080
 priority=4
 autorestart=true
+
+[program:chrome]
+command=/usr/bin/google-chrome-stable --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --no-sandbox --disable-dev-shm-usage --disable-gpu --user-data-dir=/home/chromeuser/chrome-data --disable-extensions-except=/opt/extension --load-extension=/opt/extension
+priority=5
+autorestart=true
+user=chromeuser
+environment=DISPLAY=":99"
 EOF
 
-EXPOSE 8080 5900
+EXPOSE 8080 5900 9222
 
 ENV DISPLAY=:99
 
