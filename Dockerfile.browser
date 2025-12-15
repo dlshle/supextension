@@ -25,13 +25,15 @@ RUN useradd -m chromeuser
 
 COPY ./dist /opt/extension
 
-RUN mkdir -p /home/chromeuser/chrome-data && \
-    chown -R chromeuser:chromeuser /home/chromeuser/chrome-data && \
+RUN mkdir -p /home/chromeuser/chrome-data /home/chromeuser/.local/share/applications && \
+    chown -R chromeuser:chromeuser /home/chromeuser && \
     chown -R chromeuser:chromeuser /opt/extension
 
 # Create Chrome startup script
 RUN cat > /usr/local/bin/start-chrome.sh <<'SCRIPTEOF' && chmod +x /usr/local/bin/start-chrome.sh
 #!/bin/bash
+# Set HOME to avoid permission issues
+export HOME=/home/chromeuser
 # Wait for window manager to be ready
 sleep 3
 # Start Chrome with CDP enabled
@@ -51,15 +53,27 @@ exec /usr/bin/google-chrome-stable \
     --no-first-run \
     --no-default-browser-check \
     --disable-default-apps \
-    --disable-sync
+    --disable-sync \
+    --disable-crashpad \
+    --disable-breakpad
 SCRIPTEOF
 
-RUN mkdir -p /var/log && chmod 777 /var/log
+RUN mkdir -p /var/log /var/run && \
+    chmod 777 /var/log && \
+    chmod 777 /var/run
 
 RUN cat > /etc/supervisor/conf.d/supervisord.conf <<EOF
 [supervisord]
 nodaemon=true
 user=root
+socket=/var/run/supervisor.sock
+[unix_http_server]
+file=/var/run/supervisor.sock
+chmod=0700
+[supervisorctl]
+serverurl=unix:///var/run/supervisor.sock
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 [program:xvfb]
 command=/usr/bin/Xvfb :99 -screen 0 1280x960x24
@@ -88,7 +102,7 @@ priority=5
 autorestart=true
 startsecs=5
 user=chromeuser
-environment=DISPLAY=":99"
+environment=DISPLAY=":99",HOME="/home/chromeuser"
 stdout_logfile=/var/log/chrome.log
 stderr_logfile=/var/log/chrome_error.log
 stdout_logfile_maxbytes=10MB

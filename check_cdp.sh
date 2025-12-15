@@ -16,8 +16,12 @@ if [ ! "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
 fi
 
 echo "1. Checking supervisor status for Chrome..."
-docker exec $CONTAINER_NAME supervisorctl status chrome
-echo ""
+if docker exec $CONTAINER_NAME supervisorctl status chrome 2>/dev/null; then
+    echo ""
+else
+    echo "  (supervisorctl not accessible, checking processes directly)"
+    echo ""
+fi
 
 echo "2. Checking Chrome process..."
 docker exec $CONTAINER_NAME ps aux | grep -i chrome | grep -v grep || echo "No Chrome process found"

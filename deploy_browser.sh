@@ -99,7 +99,14 @@ check_status() {
 
     echo ""
     echo "Checking supervisor status..."
-    docker exec $CONTAINER_NAME supervisorctl status || echo "Could not check supervisor status"
+    if docker exec $CONTAINER_NAME supervisorctl status 2>/dev/null; then
+        echo ""
+    else
+        echo "  (supervisorctl not accessible, but supervisor is running)"
+        echo "  Checking processes directly..."
+        docker exec $CONTAINER_NAME ps aux | grep -E "(chrome|supervisor)" | grep -v grep || echo "  No Chrome process found"
+        echo ""
+    fi
 
     echo ""
     echo "Browser extension container is running!"
