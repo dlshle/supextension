@@ -27,10 +27,10 @@ echo "2. Checking Chrome process..."
 docker exec $CONTAINER_NAME ps aux | grep -i chrome | grep -v grep || echo "No Chrome process found"
 echo ""
 
-echo "3. Testing CDP endpoint..."
+echo "3. Testing CDP endpoint from host..."
 CDP_RESPONSE=$(curl -s http://localhost:$PORT_CDP/json 2>&1)
-if [ $? -eq 0 ] && [ ! -z "$CDP_RESPONSE" ]; then
-    echo "✓ CDP is accessible!"
+if [ $? -eq 0 ] && [ ! -z "$CDP_RESPONSE" ] && [ "$CDP_RESPONSE" != "curl:"* ]; then
+    echo "✓ CDP is accessible from host!"
     echo ""
     echo "CDP Response (first 500 chars):"
     echo "$CDP_RESPONSE" | head -c 500
@@ -39,31 +39,54 @@ if [ $? -eq 0 ] && [ ! -z "$CDP_RESPONSE" ]; then
     echo "Full CDP endpoint: http://localhost:$PORT_CDP/json"
     echo "To see all targets: curl http://localhost:$PORT_CDP/json | jq"
 else
-    echo "✗ CDP is NOT accessible"
+    echo "✗ CDP is NOT accessible from host"
     echo "Response: $CDP_RESPONSE"
     echo ""
-    echo "Chrome might not be running with CDP enabled."
-    echo ""
-    echo "To manually start Chrome with CDP, you can:"
-    echo "  Option 1: Restart Chrome via supervisor:"
-    echo "    docker exec $CONTAINER_NAME supervisorctl restart chrome"
-    echo ""
-    echo "  Option 2: Start Chrome manually inside the container:"
-    echo "    docker exec -it $CONTAINER_NAME bash"
-    echo "    Then run:"
-    echo "    /usr/local/bin/start-chrome.sh"
-    echo "    OR directly (with all flags including first-run skip):"
-    echo "    google-chrome-stable --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --no-sandbox --disable-dev-shm-usage --disable-gpu --user-data-dir=/home/chromeuser/chrome-data --disable-extensions-except=/opt/extension --load-extension=/opt/extension --window-size=1280,960 --start-maximized --no-first-run --no-default-browser-check --disable-default-apps --disable-sync"
+    echo "Testing CDP from inside container..."
+    CDP_CONTAINER=$(docker exec $CONTAINER_NAME curl -s http://localhost:$PORT_CDP/json 2>&1)
+    if [ $? -eq 0 ] && [ ! -z "$CDP_CONTAINER" ]; then
+        echo "✓ CDP IS working inside container!"
+        echo "Response (first 200 chars):"
+        echo "$CDP_CONTAINER" | head -c 200
+        echo ""
+        echo "The issue might be port mapping. Check: docker port $CONTAINER_NAME | grep 9222"
+    else
+        echo "✗ CDP is NOT working even inside container"
+        echo "Container response: $CDP_CONTAINER"
+        echo ""
+        echo "Chrome might not be running with CDP enabled."
+        echo ""
+        echo "To manually start Chrome with CDP, you can:"
+        echo "  Option 1: Restart Chrome via supervisor:"
+        echo "    docker exec $CONTAINER_NAME supervisorctl restart chrome"
+        echo ""
+        echo "  Option 2: Start Chrome manually inside the container:"
+        echo "    docker exec -it $CONTAINER_NAME bash"
+        echo "    Then run:"
+        echo "    /usr/local/bin/start-chrome.sh"
+    fi
 fi
 
 echo ""
-echo "4. Checking Chrome logs..."
+echo "4. Checking extension loading..."
+echo "Extension directory:"
+docker exec $CONTAINER_NAME ls -la /opt/extension/ 2>/dev/null | head -10
+echo ""
+echo "Extension manifest:"
+docker exec $CONTAINER_NAME cat /opt/extension/manifest.json 2>/dev/null | head -20 || echo "Manifest not found"
+echo ""
+
+echo "5. Checking Chrome logs..."
 echo "--- Last 20 lines of Chrome log ---"
 docker exec $CONTAINER_NAME tail -n 20 /var/log/chrome.log 2>/dev/null || echo "No Chrome log file found"
 echo ""
 
 echo "--- Last 20 lines of Chrome error log ---"
 docker exec $CONTAINER_NAME tail -n 20 /var/log/chrome_error.log 2>/dev/null || echo "No Chrome error log file found"
+echo ""
+
+echo "--- Chrome startup log ---"
+docker exec $CONTAINER_NAME tail -n 20 /var/log/chrome_startup.log 2>/dev/null || echo "No Chrome startup log file found"
 echo ""
 
 echo "=== End of Status Check ==="

@@ -36,6 +36,17 @@ RUN cat > /usr/local/bin/start-chrome.sh <<'SCRIPTEOF' && chmod +x /usr/local/bi
 export HOME=/home/chromeuser
 # Wait for window manager to be ready
 sleep 3
+# Verify extension directory exists and is readable
+if [ ! -d "/opt/extension" ]; then
+    echo "ERROR: Extension directory /opt/extension does not exist!" >&2
+    exit 1
+fi
+if [ ! -f "/opt/extension/manifest.json" ]; then
+    echo "ERROR: Extension manifest.json not found in /opt/extension!" >&2
+    exit 1
+fi
+# Ensure extension directory is readable (in case volume mount changed permissions)
+chmod -R a+r /opt/extension 2>/dev/null || true
 # Start Chrome with CDP enabled
 exec /usr/bin/google-chrome-stable \
     --remote-debugging-port=9222 \
@@ -44,7 +55,6 @@ exec /usr/bin/google-chrome-stable \
     --disable-dev-shm-usage \
     --disable-gpu \
     --user-data-dir=/home/chromeuser/chrome-data \
-    --disable-extensions-except=/opt/extension \
     --load-extension=/opt/extension \
     --window-size=1280,960 \
     --start-maximized \
