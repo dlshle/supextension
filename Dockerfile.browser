@@ -47,7 +47,11 @@ exec /usr/bin/google-chrome-stable \
     --window-size=1280,960 \
     --start-maximized \
     --disable-infobars \
-    --disable-notifications
+    --disable-notifications \
+    --no-first-run \
+    --no-default-browser-check \
+    --disable-default-apps \
+    --disable-sync
 SCRIPTEOF
 
 RUN mkdir -p /var/log && chmod 777 /var/log

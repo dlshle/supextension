@@ -48,8 +48,8 @@ else
     echo "    docker exec -it $CONTAINER_NAME bash"
     echo "    Then run:"
     echo "    /usr/local/bin/start-chrome.sh"
-    echo "    OR directly:"
-    echo "    google-chrome-stable --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --no-sandbox --disable-dev-shm-usage --disable-gpu --user-data-dir=/home/chromeuser/chrome-data --disable-extensions-except=/opt/extension --load-extension=/opt/extension --window-size=1280,960 --start-maximized"
+    echo "    OR directly (with all flags including first-run skip):"
+    echo "    google-chrome-stable --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --no-sandbox --disable-dev-shm-usage --disable-gpu --user-data-dir=/home/chromeuser/chrome-data --disable-extensions-except=/opt/extension --load-extension=/opt/extension --window-size=1280,960 --start-maximized --no-first-run --no-default-browser-check --disable-default-apps --disable-sync"
 fi
 
 echo ""
