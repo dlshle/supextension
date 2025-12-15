@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
     curl wget gnupg unzip git python3 python3-pip python3-venv \
-    xvfb x11vnc fluxbox supervisor ca-certificates net-tools \
+    xvfb x11vnc fluxbox supervisor ca-certificates net-tools socat \
     && rm -rf /var/lib/apt/lists/*
 
 RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-archive-keyring.gpg \
@@ -47,10 +47,10 @@ if [ ! -f "/opt/extension/manifest.json" ]; then
 fi
 # Ensure extension directory is readable (in case volume mount changed permissions)
 chmod -R a+r /opt/extension 2>/dev/null || true
-# Start Chrome with CDP enabled
+# Start Chrome with CDP enabled on internal port
 exec /usr/bin/google-chrome-stable \
-    --remote-debugging-port=9222 \
-    --remote-debugging-address=0.0.0.0 \
+    --remote-debugging-port=9223 \
+    --remote-debugging-address=127.0.0.1 \
     --no-sandbox \
     --disable-dev-shm-usage \
     --disable-gpu \
@@ -115,6 +115,16 @@ user=chromeuser
 environment=DISPLAY=":99",HOME="/home/chromeuser"
 stdout_logfile=/var/log/chrome.log
 stderr_logfile=/var/log/chrome_error.log
+stdout_logfile_maxbytes=10MB
+stderr_logfile_maxbytes=10MB
+
+[program:cdp-proxy]
+command=/bin/bash -c "sleep 5 && /usr/bin/socat TCP-LISTEN:9222,fork,reuseaddr,bind=0.0.0.0 TCP:127.0.0.1:9223"
+priority=6
+autorestart=true
+startsecs=2
+stdout_logfile=/var/log/cdp-proxy.log
+stderr_logfile=/var/log/cdp-proxy_error.log
 stdout_logfile_maxbytes=10MB
 stderr_logfile_maxbytes=10MB
 EOF
