@@ -72,6 +72,9 @@ RUN mkdir -p /var/log /var/run && \
     chmod 777 /var/log && \
     chmod 777 /var/run
 
+# Set default password as environment variable
+ENV NOVNC_PASSWORD=19950416
+
 RUN cat > /etc/supervisor/conf.d/supervisord.conf <<EOF
 [supervisord]
 nodaemon=true
@@ -97,12 +100,12 @@ autorestart=true
 environment=DISPLAY=":99"
 
 [program:x11vnc]
-command=/usr/bin/x11vnc -display :99 -forever -shared -nopw -listen 0.0.0.0 -xkb
+command=/usr/bin/x11vnc -display :99 -forever -shared -passwd ${NOVNC_PASSWORD} -listen 0.0.0.0 -xkb -ncache 10 -ncache_cr
 priority=3
 autorestart=true
 
 [program:novnc]
-command=/opt/noVNC/utils/novnc_proxy --vnc localhost:5900 --listen 8080
+command=/opt/noVNC/utils/novnc_proxy --vnc localhost:5900 --listen 8080 --web /opt/noVNC
 priority=4
 autorestart=true
 
